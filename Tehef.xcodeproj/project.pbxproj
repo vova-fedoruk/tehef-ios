@@ -1,0 +1,423 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AA0000010000000000000001 /* TehefApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000001 /* TehefApp.swift */; };
+		AA0000010000000000000002 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000002 /* AppModel.swift */; };
+		AA0000010000000000000003 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000003 /* RootView.swift */; };
+		AA0000010000000000000004 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000004 /* MainTabView.swift */; };
+		AA0000010000000000000005 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000005 /* APIClient.swift */; };
+		AA0000010000000000000006 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000006 /* KeychainStore.swift */; };
+		AA0000010000000000000007 /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000007 /* SessionStore.swift */; };
+		AA0000010000000000000008 /* APIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000008 /* APIModels.swift */; };
+		AA0000010000000000000009 /* GlassDesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000009 /* GlassDesignSystem.swift */; };
+		AA000001000000000000000A /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000101000000000000000A /* HomeView.swift */; };
+		AA000001000000000000000B /* TaskBrowseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000101000000000000000B /* TaskBrowseView.swift */; };
+		AA000001000000000000000C /* TaskDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000101000000000000000C /* TaskDetailView.swift */; };
+		AA000001000000000000000D /* AuthViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000101000000000000000D /* AuthViews.swift */; };
+		AA000001000000000000000E /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000101000000000000000E /* ProfileView.swift */; };
+		AA000001000000000000000F /* ChatListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000101000000000000000F /* ChatListView.swift */; };
+		AA0000010000000000000010 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000010 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		AA0001010000000000000001 /* TehefApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TehefApp.swift; sourceTree = "<group>"; };
+		AA0001010000000000000002 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		AA0001010000000000000003 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		AA0001010000000000000004 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		AA0001010000000000000005 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		AA0001010000000000000006 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		AA0001010000000000000007 /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
+		AA0001010000000000000008 /* APIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIModels.swift; sourceTree = "<group>"; };
+		AA0001010000000000000009 /* GlassDesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassDesignSystem.swift; sourceTree = "<group>"; };
+		AA000101000000000000000A /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		AA000101000000000000000B /* TaskBrowseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskBrowseView.swift; sourceTree = "<group>"; };
+		AA000101000000000000000C /* TaskDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDetailView.swift; sourceTree = "<group>"; };
+		AA000101000000000000000D /* AuthViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViews.swift; sourceTree = "<group>"; };
+		AA000101000000000000000E /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		AA000101000000000000000F /* ChatListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatListView.swift; sourceTree = "<group>"; };
+		AA0001010000000000000010 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AA0001010000000000000011 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AA0001010000000000000012 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
+		AA0002010000000000000001 /* Tehef.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tehef.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		AA0003010000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		AA0004010000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				AA0004010000000000000002 /* Config */,
+				AA0004010000000000000003 /* Tehef */,
+				AA0004010000000000000004 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AA0004010000000000000002 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				AA0001010000000000000012 /* Secrets.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		AA0004010000000000000003 /* Tehef */ = {
+			isa = PBXGroup;
+			children = (
+				AA0001010000000000000001 /* TehefApp.swift */,
+				AA0004010000000000000005 /* App */,
+				AA0004010000000000000006 /* Core */,
+				AA0004010000000000000007 /* Design */,
+				AA0004010000000000000008 /* Features */,
+				AA0004010000000000000009 /* Resources */,
+			);
+			path = Tehef;
+			sourceTree = "<group>";
+		};
+		AA0004010000000000000004 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AA0002010000000000000001 /* Tehef.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		AA0004010000000000000005 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				AA0001010000000000000002 /* AppModel.swift */,
+				AA0001010000000000000003 /* RootView.swift */,
+				AA0001010000000000000004 /* MainTabView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		AA0004010000000000000006 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				AA000401000000000000000A /* API */,
+				AA000401000000000000000B /* Auth */,
+				AA000401000000000000000C /* Models */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		AA0004010000000000000007 /* Design */ = {
+			isa = PBXGroup;
+			children = (
+				AA000401000000000000000D /* Glass */,
+			);
+			path = Design;
+			sourceTree = "<group>";
+		};
+		AA0004010000000000000008 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				AA000401000000000000000E /* Home */,
+				AA000401000000000000000F /* Tasks */,
+				AA0004010000000000000010 /* Auth */,
+				AA0004010000000000000011 /* Profile */,
+				AA0004010000000000000012 /* Chat */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		AA0004010000000000000009 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				AA0001010000000000000010 /* Assets.xcassets */,
+				AA0001010000000000000011 /* Info.plist */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		AA000401000000000000000A /* API */ = {
+			isa = PBXGroup;
+			children = (
+				AA0001010000000000000005 /* APIClient.swift */,
+			);
+			path = API;
+			sourceTree = "<group>";
+		};
+		AA000401000000000000000B /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				AA0001010000000000000006 /* KeychainStore.swift */,
+				AA0001010000000000000007 /* SessionStore.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		AA000401000000000000000C /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				AA0001010000000000000008 /* APIModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		AA000401000000000000000D /* Glass */ = {
+			isa = PBXGroup;
+			children = (
+				AA0001010000000000000009 /* GlassDesignSystem.swift */,
+			);
+			path = Glass;
+			sourceTree = "<group>";
+		};
+		AA000401000000000000000E /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				AA000101000000000000000A /* HomeView.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		AA000401000000000000000F /* Tasks */ = {
+			isa = PBXGroup;
+			children = (
+				AA000101000000000000000B /* TaskBrowseView.swift */,
+				AA000101000000000000000C /* TaskDetailView.swift */,
+			);
+			path = Tasks;
+			sourceTree = "<group>";
+		};
+		AA0004010000000000000010 /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				AA000101000000000000000D /* AuthViews.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		AA0004010000000000000011 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				AA000101000000000000000E /* ProfileView.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
+		AA0004010000000000000012 /* Chat */ = {
+			isa = PBXGroup;
+			children = (
+				AA000101000000000000000F /* ChatListView.swift */,
+			);
+			path = Chat;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AA0005010000000000000001 /* Tehef */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0007010000000000000003 /* Build configuration list for PBXNativeTarget "Tehef" */;
+			buildPhases = (
+				AA0006010000000000000001 /* Sources */,
+				AA0003010000000000000001 /* Frameworks */,
+				AA0006010000000000000002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Tehef;
+			productName = Tehef;
+			productReference = AA0002010000000000000001 /* Tehef.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AA0008010000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					AA0005010000000000000001 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+				};
+			};
+			buildConfigurationList = AA0007010000000000000001 /* Build configuration list for PBXProject "Tehef" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = AA0004010000000000000001;
+			productRefGroup = AA0004010000000000000004 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AA0005010000000000000001 /* Tehef */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AA0006010000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA0000010000000000000010 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		AA0006010000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA0000010000000000000001 /* TehefApp.swift in Sources */,
+				AA0000010000000000000002 /* AppModel.swift in Sources */,
+				AA0000010000000000000003 /* RootView.swift in Sources */,
+				AA0000010000000000000004 /* MainTabView.swift in Sources */,
+				AA0000010000000000000005 /* APIClient.swift in Sources */,
+				AA0000010000000000000006 /* KeychainStore.swift in Sources */,
+				AA0000010000000000000007 /* SessionStore.swift in Sources */,
+				AA0000010000000000000008 /* APIModels.swift in Sources */,
+				AA0000010000000000000009 /* GlassDesignSystem.swift in Sources */,
+				AA000001000000000000000A /* HomeView.swift in Sources */,
+				AA000001000000000000000B /* TaskBrowseView.swift in Sources */,
+				AA000001000000000000000C /* TaskDetailView.swift in Sources */,
+				AA000001000000000000000D /* AuthViews.swift in Sources */,
+				AA000001000000000000000E /* ProfileView.swift in Sources */,
+				AA000001000000000000000F /* ChatListView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		AA0009010000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = AA0001010000000000000012 /* Secrets.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Tehef/Resources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.tehef.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		AA0009010000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = AA0001010000000000000012 /* Secrets.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Tehef/Resources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.tehef.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		AA0009010000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		AA0009010000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		AA0007010000000000000001 /* Build configuration list for PBXProject "Tehef" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0009010000000000000003 /* Debug */,
+				AA0009010000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA0007010000000000000003 /* Build configuration list for PBXNativeTarget "Tehef" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0009010000000000000001 /* Debug */,
+				AA0009010000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = AA0008010000000000000001 /* Project object */;
+}
