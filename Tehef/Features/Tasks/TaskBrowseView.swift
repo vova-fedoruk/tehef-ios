@@ -72,7 +72,7 @@ struct TaskBrowseView: View {
                             Spacer()
                         } else {
                             ScrollView {
-                                LazyVGrid(columns: columns, spacing: 16) {
+                                LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
                                     ForEach(viewModel.tasks) { task in
                                         NavigationLink(value: task) {
                                             TaskCardView(
@@ -85,6 +85,7 @@ struct TaskBrowseView: View {
                                             )
                                         }
                                         .buttonStyle(.plain)
+                                        .frame(maxWidth: .infinity, alignment: .top)
                                     }
                                 }
                                 .padding(.horizontal, 20)

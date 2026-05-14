@@ -10,17 +10,21 @@ struct TaskDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     if let imageURL = task.images.first, let url = URL(string: imageURL) {
-                        AsyncImage(url: url) { phase in
-                            switch phase {
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .scaledToFill()
-                            default:
-                                TehefTheme.muted
+                        ZStack {
+                            TehefTheme.muted
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                default:
+                                    EmptyView()
+                                }
                             }
                         }
                         .frame(height: 240)
+                        .clipped()
                         .clipShape(RoundedRectangle(cornerRadius: TehefTheme.radiusLarge, style: .continuous))
                     }
 

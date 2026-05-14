@@ -186,7 +186,7 @@ struct HomeView: View {
                         .foregroundStyle(TehefTheme.mutedForeground)
                 }
 
-                LazyVGrid(columns: taskColumns, spacing: 16) {
+                LazyVGrid(columns: taskColumns, alignment: .leading, spacing: 16) {
                     ForEach(tasks) { task in
                         NavigationLink(value: task) {
                             TaskCardView(
@@ -200,6 +200,7 @@ struct HomeView: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .frame(maxWidth: .infinity, alignment: .top)
                     }
                 }
 
