@@ -16,9 +16,14 @@ struct AuthFlowView: View {
                 Group {
                     switch mode {
                     case .login:
-                        LoginView(switchToSignUp: { mode = .signUp })
+                        LoginView(
+                            switchToSignUp: { mode = .signUp },
+                            switchToForgotPassword: { mode = .forgotPassword }
+                        )
                     case .signUp:
                         SignUpView(switchToLogin: { mode = .login })
+                    case .forgotPassword:
+                        ForgotPasswordView(switchToLogin: { mode = .login })
                     }
                 }
                 .padding(.horizontal, 20)
@@ -42,11 +47,13 @@ struct AuthFlowView: View {
 private enum AuthMode {
     case login
     case signUp
+    case forgotPassword
 }
 
 struct LoginView: View {
     @Environment(AppModel.self) private var appModel
     let switchToSignUp: () -> Void
+    let switchToForgotPassword: () -> Void
 
     @State private var email = ""
     @State private var password = ""
@@ -90,6 +97,11 @@ struct LoginView: View {
                     }
                     .buttonStyle(GlassPrimaryButtonStyle())
                     .disabled(isSubmitting || email.isEmpty || password.isEmpty)
+
+                    Button("Forgot password?") {
+                        switchToForgotPassword()
+                    }
+                    .buttonStyle(GlassSecondaryButtonStyle())
                 }
                 .glassCard(cornerRadius: 24)
 
@@ -215,6 +227,89 @@ struct SignUpView: View {
 
         do {
             try await appModel.sessionStore.signUp(request: request)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+}
+
+struct ForgotPasswordView: View {
+    @Environment(AppModel.self) private var appModel
+    let switchToLogin: () -> Void
+
+    @State private var email = ""
+    @State private var isSubmitting = false
+    @State private var errorMessage: String?
+    @State private var successMessage: String?
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                VStack(spacing: 8) {
+                    Text("Reset password")
+                        .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                        .foregroundStyle(TehefTheme.foreground)
+                    Text("Enter your email and we will send reset instructions if an account exists.")
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(TehefTheme.mutedForeground)
+                }
+                .glassCard(cornerRadius: 24)
+
+                VStack(spacing: 14) {
+                    TextField("Email", text: $email)
+                        .textContentType(.username)
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .tehefField()
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(TehefTheme.destructive)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    if let successMessage {
+                        Text(successMessage)
+                            .font(.footnote)
+                            .foregroundStyle(TehefTheme.accent)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    Button(isSubmitting ? "Sending..." : "Send reset link") {
+                        Task { await submit() }
+                    }
+                    .buttonStyle(GlassPrimaryButtonStyle())
+                    .disabled(isSubmitting || email.isEmpty)
+                }
+                .glassCard(cornerRadius: 24)
+
+                Button("Back to sign in") {
+                    switchToLogin()
+                }
+                .buttonStyle(GlassSecondaryButtonStyle())
+            }
+            .padding(.vertical, 24)
+        }
+    }
+
+    private func submit() async {
+        isSubmitting = true
+        errorMessage = nil
+        successMessage = nil
+        defer { isSubmitting = false }
+
+        do {
+            let response = try await appModel.apiClient.send(
+                APIRequest(
+                    path: "api/auth/request-password-reset",
+                    method: .post,
+                    body: ForgotPasswordRequest(email: email)
+                ),
+                responseType: PasswordResetResponse.self
+            )
+            successMessage = response.message ?? "If an account exists, password reset instructions have been sent."
         } catch {
             errorMessage = error.localizedDescription
         }

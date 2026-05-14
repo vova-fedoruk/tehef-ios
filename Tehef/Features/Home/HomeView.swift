@@ -8,6 +8,10 @@ final class HomeViewModel {
 
     var popularTasks: [TaskItem] = []
     var newestTasks: [TaskItem] = []
+    var likedTasks: [TaskItem] = []
+    var appliedTasks: [TaskItem] = []
+    var myTasks: [TaskItem] = []
+    var recommendedTasks: [TaskItem] = []
     var categories: [CategoryStat] = []
     var isLoading = false
     var errorMessage: String?
@@ -30,6 +34,10 @@ final class HomeViewModel {
                 )
                 popularTasks = response.popularTasks ?? []
                 newestTasks = response.newestTasks ?? []
+                likedTasks = response.likedTasks ?? []
+                appliedTasks = response.appliedTasks ?? []
+                myTasks = response.myTasks ?? []
+                recommendedTasks = response.recommendedTasks ?? []
                 categories = response.categories ?? []
             } else {
                 let response = try await apiClient.send(
@@ -73,6 +81,36 @@ struct HomeView: View {
                             } else {
                                 if !viewModel.categories.isEmpty {
                                     categoriesSection(viewModel.categories)
+                                }
+                                if appModel.isAuthenticated {
+                                    taskSection(
+                                        title: "My tasks",
+                                        subtitle: "Tasks you posted and manage.",
+                                        icon: "tray.full.fill",
+                                        iconColor: TehefTheme.primary,
+                                        tasks: viewModel.myTasks
+                                    )
+                                    taskSection(
+                                        title: "Applied tasks",
+                                        subtitle: "Tasks where you submitted a proposal.",
+                                        icon: "paperplane.fill",
+                                        iconColor: TehefTheme.accent,
+                                        tasks: viewModel.appliedTasks
+                                    )
+                                    taskSection(
+                                        title: "Liked tasks",
+                                        subtitle: "Tasks you saved for later.",
+                                        icon: "heart.fill",
+                                        iconColor: TehefTheme.primary,
+                                        tasks: viewModel.likedTasks
+                                    )
+                                    taskSection(
+                                        title: "Recommended for you",
+                                        subtitle: "Personalized opportunities based on your activity.",
+                                        icon: "sparkles",
+                                        iconColor: TehefTheme.accent,
+                                        tasks: viewModel.recommendedTasks
+                                    )
                                 }
                                 taskSection(
                                     title: "Popular tasks",
@@ -132,8 +170,13 @@ struct HomeView: View {
                 .buttonStyle(GlassPrimaryButtonStyle())
 
                 if appModel.isAuthenticated {
-                    Button("My profile") {
-                        appModel.selectedTab = 3
+                    NavigationLink {
+                        TaskCreateView()
+                    } label: {
+                        Text("Post a task")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
                     }
                     .buttonStyle(GlassSecondaryButtonStyle())
                 } else {

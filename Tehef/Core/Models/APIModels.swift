@@ -163,6 +163,7 @@ struct TaskItem: Codable, Identifiable, Hashable {
     let images: [String]
     let requirements: [String]?
     let createdAt: String?
+    let deadline: String?
     let applicationsCount: Int?
     let likesCount: Int?
     let viewCount: Int?
@@ -182,6 +183,7 @@ struct TaskItem: Codable, Identifiable, Hashable {
         case images
         case requirements
         case createdAt
+        case deadline
         case applicationsCount
         case likesCount
         case viewCount
@@ -203,6 +205,7 @@ struct TaskItem: Codable, Identifiable, Hashable {
         images = try container.decodeIfPresent([String].self, forKey: .images) ?? []
         requirements = try container.decodeIfPresent([String].self, forKey: .requirements)
         createdAt = try container.decodeIfPresent(String.self, forKey: .createdAt)
+        deadline = try container.decodeIfPresent(String.self, forKey: .deadline)
         applicationsCount = try container.decodeIfPresent(Int.self, forKey: .applicationsCount)
         likesCount = try container.decodeIfPresent(Int.self, forKey: .likesCount)
         viewCount = try container.decodeIfPresent(Int.self, forKey: .viewCount)
@@ -310,4 +313,75 @@ struct NotificationItem: Codable, Identifiable, Hashable {
     let icon: String?
     let createdAt: String
     let readAt: String?
+}
+
+struct Category: Codable, Identifiable, Hashable {
+    let id: Int
+    let name: String
+    let icon: String?
+}
+
+struct ChatMessage: Codable, Identifiable, Hashable {
+    let id: Int
+    let content: String
+    let messageType: String?
+    let createdAt: String
+    let senderId: Int
+    let readAt: String?
+    let firstName: String?
+    let lastName: String?
+    let avatarUrl: String?
+}
+
+struct ApplyToTaskRequest: Encodable {
+    let proposedPrice: Double
+    let estimatedDuration: Double?
+    let message: String?
+}
+
+struct CreateTaskRequest: Encodable {
+    let title: String
+    let description: String
+    let categoryId: Int
+    let budgetMin: Double?
+    let budgetMax: Double?
+    let deadline: String?
+    let location: TaskLocation
+    let requirements: [String]
+    let images: [String]
+}
+
+struct ProfileUpdateRequest: Encodable {
+    let firstName: String
+    let lastName: String
+    let phone: String?
+    let bio: String?
+    let skills: [String]
+    let location: TaskLocation?
+    let avatarUrl: String?
+    let preferredLanguage: String?
+}
+
+struct ForgotPasswordRequest: Encodable {
+    let email: String
+}
+
+struct PasswordResetResponse: Decodable {
+    let success: Bool?
+    let message: String?
+}
+
+struct SendMessageRequest: Encodable {
+    let content: String
+    let messageType: String?
+
+    init(content: String, messageType: String? = "text") {
+        self.content = content
+        self.messageType = messageType
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case content
+        case messageType = "message_type"
+    }
 }

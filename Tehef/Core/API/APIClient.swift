@@ -41,6 +41,7 @@ struct APIErrorResponse: Decodable {
 enum HTTPMethod: String {
     case get = "GET"
     case post = "POST"
+    case put = "PUT"
     case patch = "PATCH"
     case delete = "DELETE"
 }
@@ -68,7 +69,6 @@ final class APIClient {
         self.decoder = JSONDecoder()
         self.encoder = JSONEncoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
-        encoder.keyEncodingStrategy = .convertToSnakeCase
     }
 
     func send<Response: Decodable>(_ request: APIRequest, responseType: Response.Type = Response.self) async throws -> Response {
