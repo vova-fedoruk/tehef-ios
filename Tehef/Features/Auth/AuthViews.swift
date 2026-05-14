@@ -1,7 +1,13 @@
 import SwiftUI
 
 struct AuthFlowView: View {
-    @State private var mode: AuthMode = .login
+    @Environment(AppModel.self) private var appModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var mode: AuthMode
+
+    init(startsInSignUp: Bool = false) {
+        _mode = State(initialValue: startsInSignUp ? .signUp : .login)
+    }
 
     var body: some View {
         NavigationStack {
@@ -16,6 +22,18 @@ struct AuthFlowView: View {
                     }
                 }
                 .padding(.horizontal, 20)
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Close") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .onChange(of: appModel.isAuthenticated) { _, isAuthenticated in
+            if isAuthenticated {
+                dismiss()
             }
         }
     }
@@ -36,51 +54,52 @@ struct LoginView: View {
     @State private var errorMessage: String?
 
     var body: some View {
-        VStack(spacing: 20) {
-            VStack(spacing: 8) {
-                Text("Welcome back")
-                    .font(.largeTitle.weight(.bold))
-                Text("Sign in to manage tasks, chat, and your profile.")
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.secondary)
-            }
-            .glassCard(cornerRadius: 24)
-
-            VStack(spacing: 14) {
-                TextField("Email", text: $email)
-                    .textContentType(.username)
-                    .keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .padding()
-                    .glassEffect(.regular, in: .rect(cornerRadius: 16))
-
-                SecureField("Password", text: $password)
-                    .textContentType(.password)
-                    .padding()
-                    .glassEffect(.regular, in: .rect(cornerRadius: 16))
-
-                if let errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+        ScrollView {
+            VStack(spacing: 20) {
+                VStack(spacing: 8) {
+                    Text("Welcome back")
+                        .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                        .foregroundStyle(TehefTheme.foreground)
+                    Text("Sign in to apply, chat, and manage your profile.")
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(TehefTheme.mutedForeground)
                 }
+                .glassCard(cornerRadius: 24)
 
-                Button(isSubmitting ? "Signing in..." : "Sign in") {
-                    Task { await submit() }
+                VStack(spacing: 14) {
+                    TextField("Email", text: $email)
+                        .textContentType(.username)
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .tehefField()
+
+                    SecureField("Password", text: $password)
+                        .textContentType(.password)
+                        .tehefField()
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(TehefTheme.destructive)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    Button(isSubmitting ? "Signing in..." : "Sign in") {
+                        Task { await submit() }
+                    }
+                    .buttonStyle(GlassPrimaryButtonStyle())
+                    .disabled(isSubmitting || email.isEmpty || password.isEmpty)
                 }
-                .buttonStyle(GlassPrimaryButtonStyle())
-                .disabled(isSubmitting || email.isEmpty || password.isEmpty)
-            }
-            .glassCard(cornerRadius: 24)
+                .glassCard(cornerRadius: 24)
 
-            Button("Create an account") {
-                switchToSignUp()
+                Button("Create an account") {
+                    switchToSignUp()
+                }
+                .buttonStyle(GlassSecondaryButtonStyle())
             }
-            .buttonStyle(GlassSecondaryButtonStyle())
+            .padding(.vertical, 24)
         }
-        .frame(maxHeight: .infinity, alignment: .center)
     }
 
     private func submit() async {
@@ -114,41 +133,37 @@ struct SignUpView: View {
             VStack(spacing: 20) {
                 VStack(spacing: 8) {
                     Text("Create account")
-                        .font(.largeTitle.weight(.bold))
+                        .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                        .foregroundStyle(TehefTheme.foreground)
                     Text("Join tehef as a client or provider.")
                         .multilineTextAlignment(.center)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(TehefTheme.mutedForeground)
                 }
                 .glassCard(cornerRadius: 24)
 
                 VStack(spacing: 14) {
                     TextField("First name", text: $firstName)
                         .textContentType(.givenName)
-                        .padding()
-                        .glassEffect(.regular, in: .rect(cornerRadius: 16))
+                        .tehefField()
 
                     TextField("Last name", text: $lastName)
                         .textContentType(.familyName)
-                        .padding()
-                        .glassEffect(.regular, in: .rect(cornerRadius: 16))
+                        .tehefField()
 
                     TextField("Email", text: $email)
                         .textContentType(.emailAddress)
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                        .padding()
-                        .glassEffect(.regular, in: .rect(cornerRadius: 16))
+                        .tehefField()
 
                     TextField("Phone (optional)", text: $phone)
                         .keyboardType(.phonePad)
-                        .padding()
-                        .glassEffect(.regular, in: .rect(cornerRadius: 16))
+                        .tehefField()
 
                     SecureField("Password", text: $password)
                         .textContentType(.newPassword)
-                        .padding()
-                        .glassEffect(.regular, in: .rect(cornerRadius: 16))
+                        .tehefField()
 
                     Picker("Role", selection: $role) {
                         Text("Client").tag("client")
@@ -159,7 +174,7 @@ struct SignUpView: View {
                     if let errorMessage {
                         Text(errorMessage)
                             .font(.footnote)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(TehefTheme.destructive)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
 

@@ -50,26 +50,46 @@ struct HomeView: View {
     @Environment(AppModel.self) private var appModel
     @State private var viewModel: HomeViewModel?
 
+    private let taskColumns = [
+        GridItem(.flexible(), spacing: 16),
+        GridItem(.flexible(), spacing: 16),
+    ]
+
     var body: some View {
         NavigationStack {
             ZStack {
                 GlassBackdrop()
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        header
+                    VStack(alignment: .leading, spacing: 28) {
+                        hero
                         if let viewModel {
                             if viewModel.isLoading && viewModel.popularTasks.isEmpty {
                                 ProgressView()
+                                    .tint(TehefTheme.primary)
                                     .frame(maxWidth: .infinity)
                                     .padding(.top, 40)
                             } else if let errorMessage = viewModel.errorMessage {
                                 Text(errorMessage)
-                                    .foregroundStyle(.red)
+                                    .foregroundStyle(TehefTheme.destructive)
                                     .glassCard()
                             } else {
-                                categorySection(viewModel.categories)
-                                taskSection(title: "Popular now", tasks: viewModel.popularTasks)
-                                taskSection(title: "Newest tasks", tasks: viewModel.newestTasks)
+                                if !viewModel.categories.isEmpty {
+                                    categoriesSection(viewModel.categories)
+                                }
+                                taskSection(
+                                    title: "Popular tasks",
+                                    subtitle: "Trending requests from clients across Israel.",
+                                    icon: "chart.line.uptrend.xyaxis",
+                                    iconColor: TehefTheme.primary,
+                                    tasks: viewModel.popularTasks
+                                )
+                                taskSection(
+                                    title: "Newest tasks",
+                                    subtitle: "Fresh opportunities posted recently.",
+                                    icon: "sparkles",
+                                    iconColor: TehefTheme.accent,
+                                    tasks: viewModel.newestTasks
+                                )
                             }
                         }
                     }
@@ -97,89 +117,98 @@ struct HomeView: View {
         }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(appModel.isAuthenticated ? "Welcome back" : "Find help in Israel")
-                .font(.title2.weight(.semibold))
-            Text("Browse trusted providers, post tasks, and chat in one place.")
-                .foregroundStyle(.secondary)
+    private var hero: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(appModel.isAuthenticated ? "Welcome back" : "Find trusted help in Israel")
+                .font(.system(.title, design: .rounded, weight: .bold))
+                .foregroundStyle(TehefTheme.foreground)
+
+            Text("Browse open tasks, connect with providers, and manage work in one place.")
+                .font(.body)
+                .foregroundStyle(TehefTheme.mutedForeground)
+
+            HStack(spacing: 12) {
+                Button("Browse tasks") {
+                    appModel.openTasksTab()
+                }
+                .buttonStyle(GlassPrimaryButtonStyle())
+
+                if appModel.isAuthenticated {
+                    Button("My profile") {
+                        appModel.selectedTab = 3
+                    }
+                    .buttonStyle(GlassSecondaryButtonStyle())
+                } else {
+                    Button("Sign in") {
+                        appModel.openAuth()
+                    }
+                    .buttonStyle(GlassSecondaryButtonStyle())
+                }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard(cornerRadius: 24)
     }
 
     @ViewBuilder
-    private func categorySection(_ categories: [CategoryStat]) -> some View {
-        if !categories.isEmpty {
-            GlassSection(title: "Top categories") {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(categories) { category in
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(category.name)
-                                    .font(.subheadline.weight(.semibold))
-                                Text("\(category.tasksCount) open")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .frame(width: 140, alignment: .leading)
-                            .glassCard(cornerRadius: 18, padding: 14)
-                        }
-                    }
-                }
-            }
+    private func categoriesSection(_ categories: [CategoryStat]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("CATEGORIES")
+                .font(.caption.weight(.semibold))
+                .kerning(1.2)
+                .foregroundStyle(TehefTheme.mutedForeground)
+                .frame(maxWidth: .infinity, alignment: .center)
+
+            CategoryCirclesView(categories: categories)
         }
+        .glassCard(cornerRadius: 24)
     }
 
     @ViewBuilder
-    private func taskSection(title: String, tasks: [TaskItem]) -> some View {
+    private func taskSection(
+        title: String,
+        subtitle: String,
+        icon: String,
+        iconColor: Color,
+        tasks: [TaskItem]
+    ) -> some View {
         if !tasks.isEmpty {
-            GlassSection(title: title) {
-                VStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        Image(systemName: icon)
+                            .foregroundStyle(iconColor)
+                        Text(title)
+                            .tehefHeadline()
+                    }
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(TehefTheme.mutedForeground)
+                }
+
+                LazyVGrid(columns: taskColumns, spacing: 16) {
                     ForEach(tasks) { task in
                         NavigationLink(value: task) {
-                            TaskRow(task: task)
+                            TaskCardView(
+                                task: task,
+                                onToggleLike: { _, _ in
+                                    if appModel.isAuthenticated {
+                                        return
+                                    }
+                                    appModel.openAuth()
+                                }
+                            )
                         }
                         .buttonStyle(.plain)
                     }
                 }
-            }
-        }
-    }
-}
 
-struct TaskRow: View {
-    let task: TaskItem
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(task.title)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Spacer()
-                Text(task.budgetLabel)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(TehefTheme.accent)
-            }
-            Text(task.description)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-            HStack {
-                if let category = task.category?.name {
-                    Label(category, systemImage: "tag.fill")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                Button("View all tasks") {
+                    appModel.openTasksTab()
                 }
-                Spacer()
-                if let location = task.location, !location.isEmpty {
-                    Label(location, systemImage: "mappin.and.ellipse")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                .buttonStyle(GlassSecondaryButtonStyle())
             }
+            .glassCard(cornerRadius: 24)
         }
-        .glassCard(cornerRadius: 18, padding: 14)
     }
 }

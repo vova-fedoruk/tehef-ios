@@ -41,6 +41,11 @@ struct TaskBrowseView: View {
     @State private var viewModel: TaskBrowseViewModel?
     @State private var searchText = ""
 
+    private let columns = [
+        GridItem(.flexible(), spacing: 16),
+        GridItem(.flexible(), spacing: 16),
+    ]
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -48,28 +53,36 @@ struct TaskBrowseView: View {
                 VStack(spacing: 16) {
                     if let viewModel {
                         GlassSearchField(text: $searchText, placeholder: "Search tasks")
-                        .padding(.horizontal, 20)
-                        .onSubmit {
-                            viewModel.searchText = searchText
-                            Task { await viewModel.load() }
-                        }
+                            .padding(.horizontal, 20)
+                            .onSubmit {
+                                viewModel.searchText = searchText
+                                Task { await viewModel.load() }
+                            }
 
                         if viewModel.isLoading && viewModel.tasks.isEmpty {
                             Spacer()
                             ProgressView()
+                                .tint(TehefTheme.primary)
                             Spacer()
                         } else if let errorMessage = viewModel.errorMessage {
                             Text(errorMessage)
-                                .foregroundStyle(.red)
+                                .foregroundStyle(TehefTheme.destructive)
                                 .glassCard()
                                 .padding(.horizontal, 20)
                             Spacer()
                         } else {
                             ScrollView {
-                                LazyVStack(spacing: 12) {
+                                LazyVGrid(columns: columns, spacing: 16) {
                                     ForEach(viewModel.tasks) { task in
                                         NavigationLink(value: task) {
-                                            TaskRow(task: task)
+                                            TaskCardView(
+                                                task: task,
+                                                onToggleLike: { _, _ in
+                                                    if !appModel.isAuthenticated {
+                                                        appModel.openAuth()
+                                                    }
+                                                }
+                                            )
                                         }
                                         .buttonStyle(.plain)
                                     }

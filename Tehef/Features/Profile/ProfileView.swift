@@ -13,28 +13,25 @@ struct ProfileView: View {
                             VStack(spacing: 12) {
                                 Image(systemName: "person.crop.circle.fill")
                                     .font(.system(size: 72))
-                                    .foregroundStyle(TehefTheme.accent)
+                                    .foregroundStyle(TehefTheme.primary)
                                 Text(user.displayName)
-                                    .font(.title2.weight(.bold))
+                                    .font(.system(.title2, design: .rounded, weight: .bold))
+                                    .foregroundStyle(TehefTheme.foreground)
                                 Text(user.email)
-                                    .foregroundStyle(.secondary)
-                                Text(user.role.capitalized)
-                                    .font(.caption.weight(.semibold))
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .glassCapsule()
+                                    .foregroundStyle(TehefTheme.mutedForeground)
+                                TehefBadge(text: user.role.capitalized, tint: TehefTheme.accent)
                             }
                             .frame(maxWidth: .infinity)
                             .glassCard(cornerRadius: 24)
 
                             if let location = user.location, !location.isEmpty {
-                                GlassSection(title: "Location") {
+                                GlassSection(title: "Location", icon: "mappin.and.ellipse") {
                                     Text(location)
                                 }
                             }
 
                             if let bio = user.bio, !bio.isEmpty {
-                                GlassSection(title: "Bio") {
+                                GlassSection(title: "Bio", icon: "text.quote") {
                                     Text(bio)
                                 }
                             }
@@ -44,12 +41,23 @@ struct ProfileView: View {
                             }
                             .buttonStyle(GlassSecondaryButtonStyle())
                         } else {
-                            VStack(spacing: 12) {
-                                Text("Sign in to view your profile")
+                            VStack(spacing: 16) {
+                                Text("Sign in to manage your account")
                                     .font(.headline)
-                                Text("Your account details, settings, and verification status will appear here.")
+                                    .foregroundStyle(TehefTheme.foreground)
+                                Text("You can browse tasks without an account. Sign in when you want to apply, chat, or post work.")
                                     .multilineTextAlignment(.center)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(TehefTheme.mutedForeground)
+
+                                Button("Sign in") {
+                                    appModel.openAuth()
+                                }
+                                .buttonStyle(GlassPrimaryButtonStyle())
+
+                                Button("Create account") {
+                                    appModel.openAuth(signUp: true)
+                                }
+                                .buttonStyle(GlassSecondaryButtonStyle())
                             }
                             .glassCard(cornerRadius: 24)
                         }

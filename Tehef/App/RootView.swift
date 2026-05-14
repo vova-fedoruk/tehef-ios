@@ -8,11 +8,15 @@ struct RootView: View {
         Group {
             if isBootstrapping {
                 LaunchView()
-            } else if appModel.isAuthenticated {
-                MainTabView()
             } else {
-                AuthFlowView()
+                MainTabView()
             }
+        }
+        .sheet(isPresented: Binding(
+            get: { appModel.showAuthSheet },
+            set: { appModel.showAuthSheet = $0 }
+        )) {
+            AuthFlowView(startsInSignUp: appModel.authStartsInSignUp)
         }
         .task {
             await appModel.sessionStore.bootstrap()
@@ -28,13 +32,15 @@ private struct LaunchView: View {
             VStack(spacing: 16) {
                 Image(systemName: "sparkles")
                     .font(.system(size: 42, weight: .semibold))
-                    .foregroundStyle(TehefTheme.accent)
+                    .foregroundStyle(TehefTheme.primary)
                 Text("tehef")
                     .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                    .foregroundStyle(TehefTheme.foreground)
                 ProgressView()
+                    .tint(TehefTheme.primary)
             }
             .padding(32)
-            .glassCard(cornerRadius: 28)
+            .glassCard(cornerRadius: 24)
             .padding(.horizontal, 28)
         }
     }

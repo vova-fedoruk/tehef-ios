@@ -17,7 +17,6 @@ final class SessionStore {
         self.decoder = JSONDecoder()
         self.encoder = JSONEncoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
-        encoder.keyEncodingStrategy = .convertToSnakeCase
     }
 
     func bootstrap() async {

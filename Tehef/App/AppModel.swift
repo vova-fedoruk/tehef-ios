@@ -16,4 +16,17 @@ final class AppModel {
     var isAuthenticated: Bool {
         sessionStore.user != nil
     }
+
+    var selectedTab = 0
+    var showAuthSheet = false
+    var authStartsInSignUp = false
+
+    func openAuth(signUp: Bool = false) {
+        authStartsInSignUp = signUp
+        showAuthSheet = true
+    }
+
+    func openTasksTab() {
+        selectedTab = 1
+    }
 }

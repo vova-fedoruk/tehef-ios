@@ -1,10 +1,12 @@
 import SwiftUI
 
 struct MainTabView: View {
-    @State private var selectedTab = 0
+    @Environment(AppModel.self) private var appModel
 
     var body: some View {
-        TabView(selection: $selectedTab) {
+        @Bindable var appModel = appModel
+
+        TabView(selection: $appModel.selectedTab) {
             HomeView()
                 .tabItem {
                     Label("Home", systemImage: "house.fill")
@@ -13,7 +15,7 @@ struct MainTabView: View {
 
             TaskBrowseView()
                 .tabItem {
-                    Label("Tasks", systemImage: "list.bullet.rectangle")
+                    Label("Tasks", systemImage: "square.grid.2x2.fill")
                 }
                 .tag(1)
 
@@ -29,5 +31,6 @@ struct MainTabView: View {
                 }
                 .tag(3)
         }
+        .tint(TehefTheme.primary)
     }
 }

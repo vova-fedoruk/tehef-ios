@@ -8,7 +8,8 @@ struct TehefApp: App {
         WindowGroup {
             RootView()
                 .environment(appModel)
-                .tint(TehefTheme.accent)
+                .tint(TehefTheme.primary)
+                .preferredColorScheme(.light)
         }
     }
 }
