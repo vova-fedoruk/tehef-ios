@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum TaskBrowseSection: String, CaseIterable, Identifiable {
+enum TaskBrowseSection: String, CaseIterable, Identifiable, Hashable {
     case all
     case applied
 
@@ -59,9 +59,12 @@ final class TaskBrowseViewModel {
         }
     }
 
-    func load() async {
+    func load(preserveResults: Bool = false) async {
         isLoading = true
         errorMessage = nil
+        if !preserveResults {
+            tasks = []
+        }
         defer { isLoading = false }
 
         switch section {
@@ -72,8 +75,15 @@ final class TaskBrowseViewModel {
         }
     }
 
+    func switchSection(to section: TaskBrowseSection) async {
+        self.section = section
+        await load()
+    }
+
     private func loadAllTasks() async {
-        var queryItems: [URLQueryItem] = []
+        var queryItems: [URLQueryItem] = [
+            URLQueryItem(name: "status", value: "open"),
+        ]
         let trimmedSearch = filters.search.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmedSearch.isEmpty {
             queryItems.append(URLQueryItem(name: "search", value: trimmedSearch))
@@ -102,10 +112,11 @@ final class TaskBrowseViewModel {
 
     private func loadAppliedTasks() async {
         do {
-            tasks = try await apiClient.send(
+            let loaded = try await apiClient.send(
                 APIRequest(path: "api/tasks/applied", requiresAuth: true),
                 responseType: [TaskItem].self
             )
+            tasks = loaded.filter { $0.status == "open" }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -119,7 +130,7 @@ struct TaskBrowseView: View {
     @State private var selectedSection: TaskBrowseSection = .all
     @State private var isFilterSheetPresented = false
     @State private var draftFilters = TaskBrowseFilters()
-    @State private var areSubTabsVisible = true
+    @State private var isBrowsingChromeVisible = true
     @State private var lastScrollOffset: CGFloat = 0
 
     var body: some View {
@@ -150,7 +161,7 @@ struct TaskBrowseView: View {
                 await viewModel?.load()
             }
             .refreshable {
-                await viewModel?.load()
+                await viewModel?.load(preserveResults: true)
             }
             .sheet(isPresented: $isFilterSheetPresented) {
                 if let viewModel {
@@ -175,13 +186,14 @@ struct TaskBrowseView: View {
     @ViewBuilder
     private func browsingChrome(for viewModel: TaskBrowseViewModel) -> some View {
         VStack(spacing: 14) {
-            TaskBrowseSegmentedControl(selection: $selectedSection)
-                .padding(.horizontal, 16)
-                .opacity(areSubTabsVisible ? 1 : 0)
-                .frame(maxHeight: areSubTabsVisible ? nil : 0, alignment: .top)
-                .clipped()
-                .allowsHitTesting(areSubTabsVisible)
-                .animation(.easeInOut(duration: 0.22), value: areSubTabsVisible)
+            Picker("Tasks", selection: $selectedSection) {
+                ForEach(TaskBrowseSection.allCases) { section in
+                    Text(section.title).tag(section)
+                }
+            }
+            .pickerStyle(.segmented)
+            .tint(TehefTheme.accent)
+            .padding(.horizontal, 16)
 
             if selectedSection == .all {
                 VStack(spacing: 10) {
@@ -245,22 +257,14 @@ struct TaskBrowseView: View {
             }
         }
         .padding(.bottom, 16)
-        .background {
-            LinearGradient(
-                colors: [
-                    TehefTheme.background.opacity(0.96),
-                    TehefTheme.background.opacity(0.90),
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea(edges: .horizontal)
-        }
+        .opacity(isBrowsingChromeVisible ? 1 : 0)
+        .offset(y: isBrowsingChromeVisible ? 0 : -16)
+        .allowsHitTesting(isBrowsingChromeVisible)
         .onChange(of: selectedSection) { _, newSection in
-            areSubTabsVisible = true
+            revealBrowsingChrome()
             lastScrollOffset = 0
-            viewModel.section = newSection
-            Task { await viewModel.load() }
+            guard viewModel.section != newSection else { return }
+            Task { await viewModel.switchSection(to: newSection) }
         }
     }
 
@@ -293,7 +297,7 @@ struct TaskBrowseView: View {
     private func browsingContent(for viewModel: TaskBrowseViewModel) -> some View {
         if selectedSection == .applied && !appModel.isAuthenticated {
             appliedSignInPrompt
-        } else if viewModel.isLoading && viewModel.tasks.isEmpty {
+        } else if viewModel.isLoading {
             Spacer()
             ProgressView()
                 .tint(TehefTheme.primary)
@@ -310,7 +314,7 @@ struct TaskBrowseView: View {
                     .font(.headline)
                 Text(
                     selectedSection == .applied
-                        ? "Tasks where you submitted a proposal will appear here."
+                        ? "Open tasks where you submitted a proposal will appear here."
                         : "Try changing your filters or search."
                 )
                 .multilineTextAlignment(.center)
@@ -329,53 +333,71 @@ struct TaskBrowseView: View {
             .padding(20)
             Spacer()
         } else {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 14) {
-                    HStack {
-                        Text("\(viewModel.tasks.count) \(viewModel.tasks.count == 1 ? "task" : "tasks")")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(TehefTheme.mutedForeground)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 16)
+            taskListScrollView(for: viewModel)
+        }
+    }
 
-                    TaskGridRows(items: viewModel.tasks, spacing: 12) { task in
-                        NavigationLink(value: task) {
-                            TaskCardView(
-                                task: task,
-                                onToggleLike: { _, _ in
-                                    if !appModel.isAuthenticated {
-                                        appModel.openAuth()
-                                    }
+    private func taskListScrollView(for viewModel: TaskBrowseViewModel) -> some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Text("\(viewModel.tasks.count) \(viewModel.tasks.count == 1 ? "task" : "tasks")")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(TehefTheme.mutedForeground)
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+
+                TaskGridRows(items: viewModel.tasks, spacing: 12) { task in
+                    NavigationLink(value: task) {
+                        TaskCardView(
+                            task: task,
+                            onToggleLike: { _, _ in
+                                if !appModel.isAuthenticated {
+                                    appModel.openAuth()
                                 }
-                            )
-                        }
-                        .buttonStyle(.plain)
+                            }
+                        )
                     }
-                    .padding(.horizontal, 16)
+                    .buttonStyle(.plain)
                 }
-                .padding(.top, 14)
-                .padding(.bottom, 96)
+                .padding(.horizontal, 16)
             }
-            .scrollDismissesKeyboard(.interactively)
-            .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                geometry.contentOffset.y
-            } action: { _, offset in
-                guard offset >= 0 else { return }
+            .padding(.top, 14)
+            .padding(.bottom, 96)
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .onScrollGeometryChange(for: CGFloat.self) { geometry in
+            geometry.contentOffset.y
+        } action: { _, offset in
+            guard offset >= 0 else { return }
 
-                let scrollingDown = offset > lastScrollOffset + 6
-                let scrollingUp = offset < lastScrollOffset - 6
+            let scrollingDown = offset > lastScrollOffset + 2
+            let scrollingUp = offset < lastScrollOffset - 2
 
-                if offset <= 8 {
-                    areSubTabsVisible = true
-                } else if scrollingDown {
-                    areSubTabsVisible = false
-                } else if scrollingUp {
-                    areSubTabsVisible = true
-                }
-
-                lastScrollOffset = offset
+            if offset <= 4 {
+                revealBrowsingChrome()
+            } else if scrollingDown {
+                hideBrowsingChrome()
+            } else if scrollingUp {
+                revealBrowsingChrome()
             }
+
+            lastScrollOffset = offset
+        }
+    }
+
+    private func revealBrowsingChrome() {
+        guard !isBrowsingChromeVisible else { return }
+        withAnimation(.snappy(duration: 0.28)) {
+            isBrowsingChromeVisible = true
+        }
+    }
+
+    private func hideBrowsingChrome() {
+        guard isBrowsingChromeVisible else { return }
+        withAnimation(.snappy(duration: 0.28)) {
+            isBrowsingChromeVisible = false
         }
     }
 
@@ -401,6 +423,8 @@ struct TaskBrowseView: View {
     private func applyDraftFilters(to viewModel: TaskBrowseViewModel) {
         searchText = draftFilters.search
         viewModel.filters = draftFilters
+        revealBrowsingChrome()
+        lastScrollOffset = 0
         Task { await viewModel.load() }
     }
 
@@ -435,46 +459,6 @@ struct TaskBrowseView: View {
             }
         }
         return chips
-    }
-}
-
-private struct TaskBrowseSegmentedControl: View {
-    @Binding var selection: TaskBrowseSection
-
-    var body: some View {
-        HStack(spacing: 4) {
-            ForEach(TaskBrowseSection.allCases) { section in
-                Button {
-                    withAnimation(.snappy(duration: 0.24)) {
-                        selection = section
-                    }
-                } label: {
-                    Text(section.title)
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(selection == section ? .white : TehefTheme.foreground)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 40)
-                        .background {
-                            if selection == section {
-                                Capsule()
-                                    .fill(TehefTheme.accent.opacity(0.92))
-                            }
-                        }
-                        .glassEffect(
-                            selection == section ? .regular.tint(TehefTheme.accent).interactive() : .identity,
-                            in: .capsule
-                        )
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(4)
-        .background(TehefTheme.background.opacity(0.55), in: Capsule())
-        .overlay {
-            Capsule()
-                .stroke(TehefTheme.border.opacity(0.65), lineWidth: 1)
-        }
-        .glassEffect(.regular, in: .capsule)
     }
 }
 
