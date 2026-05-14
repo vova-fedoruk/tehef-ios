@@ -18,6 +18,14 @@ struct RootView: View {
         )) {
             AuthFlowView(startsInSignUp: appModel.authStartsInSignUp)
         }
+        .sheet(isPresented: Binding(
+            get: { appModel.showCreateTaskSheet },
+            set: { appModel.showCreateTaskSheet = $0 }
+        )) {
+            NavigationStack {
+                TaskCreateView()
+            }
+        }
         .task {
             await appModel.sessionStore.bootstrap()
             isBootstrapping = false

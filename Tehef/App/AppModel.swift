@@ -20,6 +20,7 @@ final class AppModel {
     var selectedTab = 0
     var showAuthSheet = false
     var authStartsInSignUp = false
+    var showCreateTaskSheet = false
 
     func openAuth(signUp: Bool = false) {
         authStartsInSignUp = signUp
@@ -28,5 +29,13 @@ final class AppModel {
 
     func openTasksTab() {
         selectedTab = 1
+    }
+
+    func openCreateTask() {
+        if isAuthenticated {
+            showCreateTaskSheet = true
+        } else {
+            openAuth()
+        }
     }
 }

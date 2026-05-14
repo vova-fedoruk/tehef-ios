@@ -130,7 +130,7 @@ struct HomeView: View {
                         }
                     }
                     .padding(.horizontal, 20)
-                    .padding(.bottom, 28)
+                    .padding(.bottom, 96)
                     }
                 }
             }
@@ -170,13 +170,8 @@ struct HomeView: View {
                 .buttonStyle(GlassPrimaryButtonStyle())
 
                 if appModel.isAuthenticated {
-                    NavigationLink {
-                        TaskCreateView()
-                    } label: {
-                        Text("Post a task")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
+                    Button("Post a task") {
+                        appModel.openCreateTask()
                     }
                     .buttonStyle(GlassSecondaryButtonStyle())
                 } else {

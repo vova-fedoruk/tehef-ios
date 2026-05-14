@@ -102,7 +102,18 @@ struct ChatThreadView: View {
                             .padding(.horizontal, 20)
                     }
 
-                    composer(viewModel: viewModel)
+                    TehefChatComposer(
+                        text: $draft,
+                        isSending: viewModel.isSending,
+                        onSend: {
+                            Task {
+                                let sent = await viewModel.send(content: draft)
+                                if sent {
+                                    draft = ""
+                                }
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -122,15 +133,7 @@ struct ChatThreadView: View {
         HStack {
             if isMine { Spacer(minLength: 48) }
             VStack(alignment: isMine ? .trailing : .leading, spacing: 4) {
-                Text(message.content)
-                    .font(.body)
-                    .foregroundStyle(isMine ? .white : TehefTheme.foreground)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(
-                        isMine ? TehefTheme.primary : TehefTheme.card.opacity(0.92),
-                        in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    )
+                messageContent(message, isMine: isMine)
                 Text(message.createdAt)
                     .font(.caption2)
                     .foregroundStyle(TehefTheme.mutedForeground)
@@ -140,24 +143,110 @@ struct ChatThreadView: View {
     }
 
     @ViewBuilder
-    private func composer(viewModel: ChatThreadViewModel) -> some View {
-        HStack(spacing: 12) {
-            TextField("Message", text: $draft, axis: .vertical)
-                .lineLimit(1...4)
-                .tehefField()
+    private func messageContent(_ message: ChatMessage, isMine: Bool) -> some View {
+        switch resolvedMessageType(for: message) {
+        case "image":
+            TehefRemoteImage(
+                urlString: message.content,
+                contentMode: .fill,
+                cornerRadius: 16,
+                showsBorder: false
+            )
+            .frame(maxWidth: 240, maxHeight: 240)
+            .background(bubbleBackground(isMine: isMine), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        case "video":
+            TehefRemoteImage(
+                urlString: message.content,
+                contentMode: .fit,
+                cornerRadius: 16,
+                showsBorder: false
+            )
+            .frame(maxWidth: 260, maxHeight: 180)
+            .background(bubbleBackground(isMine: isMine), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        default:
+            Text(message.content)
+                .font(.body)
+                .foregroundStyle(isMine ? .white : TehefTheme.foreground)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(bubbleBackground(isMine: isMine), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        }
+    }
 
-            Button(viewModel.isSending ? "..." : "Send") {
-                Task {
-                    let sent = await viewModel.send(content: draft)
-                    if sent {
-                        draft = ""
+    private func bubbleBackground(isMine: Bool) -> Color {
+        isMine ? TehefTheme.primary : TehefTheme.card.opacity(0.92)
+    }
+
+    private func resolvedMessageType(for message: ChatMessage) -> String {
+        if let messageType = message.messageType, messageType != "text" {
+            return messageType
+        }
+
+        let content = message.content.lowercased()
+        if content.hasPrefix("http") && [".jpg", ".jpeg", ".png", ".webp", ".gif"].contains(where: { content.contains($0) }) {
+            return "image"
+        }
+        if content.hasPrefix("http") && [".mp4", ".webm", ".mov"].contains(where: { content.contains($0) }) {
+            return "video"
+        }
+        return message.messageType ?? "text"
+    }
+}
+
+struct TehefChatComposer: View {
+    @Binding var text: String
+    let isSending: Bool
+    let onSend: () -> Void
+
+  var body: some View {
+        HStack(alignment: .bottom, spacing: 10) {
+            Button {
+            } label: {
+                Image(systemName: "paperclip")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(TehefTheme.foreground)
+                    .frame(width: 42, height: 42)
+                    .background(TehefTheme.muted.opacity(0.92), in: Circle())
+                    .overlay {
+                        Circle()
+                            .stroke(TehefTheme.border.opacity(0.7), lineWidth: 1)
+                    }
+            }
+            .buttonStyle(.plain)
+            .disabled(true)
+            .opacity(0.55)
+
+            TextField("Message", text: $text, axis: .vertical)
+                .lineLimit(1...5)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 11)
+                .background(TehefTheme.background.opacity(0.88), in: Capsule())
+                .overlay {
+                    Capsule()
+                        .stroke(TehefTheme.border.opacity(0.75), lineWidth: 1)
+                }
+
+            Button {
+                onSend()
+            } label: {
+                Group {
+                    if isSending {
+                        ProgressView()
+                            .tint(.white)
+                    } else {
+                        Image(systemName: text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "mic.fill" : "arrow.up")
+                            .font(.system(size: 17, weight: .bold))
                     }
                 }
+                .foregroundStyle(.white)
+                .frame(width: 42, height: 42)
+                .background(TehefTheme.accent, in: Circle())
             }
-            .buttonStyle(GlassPrimaryButtonStyle())
-            .disabled(viewModel.isSending || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .buttonStyle(.plain)
+            .disabled(isSending || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
-        .padding(20)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .background(.ultraThinMaterial)
     }
 }

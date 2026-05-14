@@ -75,20 +75,13 @@ struct TaskCardView: View {
             .aspectRatio(imageAspectRatio, contentMode: .fit)
             .background(TehefTheme.muted)
             .overlay {
-                if let imageURL = task.images.first, let url = URL(string: imageURL) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        case .failure:
-                            placeholderContent
-                        default:
-                            ProgressView()
-                                .tint(TehefTheme.primary)
-                        }
-                    }
+                if task.images.first != nil {
+                    TehefRemoteImage(
+                        urlString: task.images.first,
+                        contentMode: .fill,
+                        cornerRadius: cornerRadius,
+                        showsBorder: false
+                    )
                 } else {
                     placeholderContent
                 }

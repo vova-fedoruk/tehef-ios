@@ -164,13 +164,13 @@ struct GlassSecondaryButtonStyle: ButtonStyle {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
             .foregroundStyle(TehefTheme.foreground)
-            .background(TehefTheme.background.opacity(0.72), in: Capsule())
+            .background(TehefTheme.muted.opacity(configuration.isPressed ? 0.85 : 1), in: Capsule())
             .overlay {
                 Capsule()
-                    .stroke(TehefTheme.border.opacity(0.8), lineWidth: 1)
+                    .stroke(TehefTheme.border, lineWidth: 1)
             }
             .glassEffect(.regular.interactive(), in: .capsule)
-            .opacity(configuration.isPressed ? 0.85 : 1)
+            .opacity(configuration.isPressed ? 0.92 : 1)
     }
 }
 

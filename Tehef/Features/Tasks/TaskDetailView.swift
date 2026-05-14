@@ -133,33 +133,15 @@ struct TaskDetailView: View {
     private func imageGallery(for task: TaskItem) -> some View {
         if task.images.isEmpty {
             EmptyView()
-        } else if task.images.count == 1, let url = URL(string: task.images[0]) {
-            AsyncImage(url: url) { phase in
-                if case .success(let image) = phase {
-                    image.resizable().scaledToFill()
-                } else {
-                    TehefTheme.muted
-                }
-            }
-            .frame(height: 260)
-            .clipped()
-            .clipShape(RoundedRectangle(cornerRadius: TehefTheme.radiusLarge, style: .continuous))
+        } else if task.images.count == 1 {
+            TehefRemoteImage(urlString: task.images[0], cornerRadius: TehefTheme.radiusLarge)
+                .frame(height: 260)
         } else {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(task.images, id: \.self) { imageURL in
-                        if let url = URL(string: imageURL) {
-                            AsyncImage(url: url) { phase in
-                                if case .success(let image) = phase {
-                                    image.resizable().scaledToFill()
-                                } else {
-                                    TehefTheme.muted
-                                }
-                            }
+                        TehefRemoteImage(urlString: imageURL, cornerRadius: TehefTheme.radiusMedium)
                             .frame(width: 260, height: 220)
-                            .clipped()
-                            .clipShape(RoundedRectangle(cornerRadius: TehefTheme.radiusMedium, style: .continuous))
-                        }
                     }
                 }
             }
