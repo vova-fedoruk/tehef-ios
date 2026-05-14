@@ -1,5 +1,75 @@
 import Foundation
 
+struct TaskLocation: Codable, Hashable {
+    let city: String?
+    let address: String?
+    let coordinates: Coordinates?
+
+    struct Coordinates: Codable, Hashable {
+        let latitude: Double?
+        let longitude: Double?
+    }
+
+    var displayLabel: String {
+        if let city, !city.isEmpty {
+            return city
+        }
+        if let address, !address.isEmpty {
+            return address
+        }
+        return ""
+    }
+
+    init(city: String? = nil, address: String? = nil, coordinates: Coordinates? = nil) {
+        self.city = city
+        self.address = address
+        self.coordinates = coordinates
+    }
+
+    init(from decoder: Decoder) throws {
+        if let singleValue = try? decoder.singleValueContainer(),
+           let text = try? singleValue.decode(String.self) {
+            self.init(city: text)
+            return
+        }
+
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            city: try container.decodeIfPresent(String.self, forKey: .city),
+            address: try container.decodeIfPresent(String.self, forKey: .address),
+            coordinates: try container.decodeIfPresent(Coordinates.self, forKey: .coordinates)
+        )
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(city, forKey: .city)
+        try container.encodeIfPresent(address, forKey: .address)
+        try container.encodeIfPresent(coordinates, forKey: .coordinates)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case city
+        case address
+        case coordinates
+    }
+}
+
+private enum FlexibleDouble {
+    static func decode(from container: KeyedDecodingContainer<TaskItem.CodingKeys>, forKey key: TaskItem.CodingKeys) throws -> Double? {
+        if let value = try? container.decode(Double.self, forKey: key) {
+            return value
+        }
+        if let value = try? container.decode(Int.self, forKey: key) {
+            return Double(value)
+        }
+        if let value = try? container.decode(String.self, forKey: key) {
+            return Double(value)
+        }
+        return nil
+    }
+}
+
 struct User: Codable, Identifiable, Hashable {
     let id: Int
     let email: String
@@ -12,7 +82,7 @@ struct User: Codable, Identifiable, Hashable {
     let emailVerified: Bool?
     let rating: Double?
     let totalReviews: Int?
-    let location: String?
+    let location: TaskLocation?
     let bio: String?
     let preferredLanguage: String?
 
@@ -40,7 +110,7 @@ struct TaskItem: Codable, Identifiable, Hashable {
     let description: String
     let budgetMin: Double?
     let budgetMax: Double?
-    let location: String?
+    let location: TaskLocation?
     let status: String
     let images: [String]
     let requirements: [String]?
@@ -53,6 +123,47 @@ struct TaskItem: Codable, Identifiable, Hashable {
     let client: TaskClientSummary?
     let category: TaskCategorySummary?
 
+    enum CodingKeys: String, CodingKey {
+        case id
+        case title
+        case description
+        case budgetMin
+        case budgetMax
+        case location
+        case status
+        case images
+        case requirements
+        case createdAt
+        case applicationsCount
+        case likesCount
+        case viewCount
+        case hasApplied
+        case isLiked
+        case client
+        case category
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(Int.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        description = try container.decode(String.self, forKey: .description)
+        budgetMin = try FlexibleDouble.decode(from: container, forKey: .budgetMin)
+        budgetMax = try FlexibleDouble.decode(from: container, forKey: .budgetMax)
+        location = try container.decodeIfPresent(TaskLocation.self, forKey: .location)
+        status = try container.decode(String.self, forKey: .status)
+        images = try container.decodeIfPresent([String].self, forKey: .images) ?? []
+        requirements = try container.decodeIfPresent([String].self, forKey: .requirements)
+        createdAt = try container.decodeIfPresent(String.self, forKey: .createdAt)
+        applicationsCount = try container.decodeIfPresent(Int.self, forKey: .applicationsCount)
+        likesCount = try container.decodeIfPresent(Int.self, forKey: .likesCount)
+        viewCount = try container.decodeIfPresent(Int.self, forKey: .viewCount)
+        hasApplied = try container.decodeIfPresent(Bool.self, forKey: .hasApplied)
+        isLiked = try container.decodeIfPresent(Bool.self, forKey: .isLiked)
+        client = try container.decodeIfPresent(TaskClientSummary.self, forKey: .client)
+        category = try container.decodeIfPresent(TaskCategorySummary.self, forKey: .category)
+    }
+
     var budgetLabel: String {
         switch (budgetMin, budgetMax) {
         case let (min?, max?):
@@ -64,6 +175,10 @@ struct TaskItem: Codable, Identifiable, Hashable {
         default:
             return "Budget on request"
         }
+    }
+
+    var locationLabel: String {
+        location?.displayLabel ?? ""
     }
 }
 

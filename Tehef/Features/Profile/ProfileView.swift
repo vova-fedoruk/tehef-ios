@@ -24,9 +24,9 @@ struct ProfileView: View {
                             .frame(maxWidth: .infinity)
                             .glassCard(cornerRadius: 24)
 
-                            if let location = user.location, !location.isEmpty {
+                            if let location = user.location, !location.displayLabel.isEmpty {
                                 GlassSection(title: "Location", icon: "mappin.and.ellipse") {
-                                    Text(location)
+                                    Text(location.displayLabel)
                                 }
                             }
 

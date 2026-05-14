@@ -31,8 +31,8 @@ struct TaskDetailView: View {
                         Text(task.budgetLabel)
                             .font(.headline)
                             .foregroundStyle(TehefTheme.foreground)
-                        if let location = task.location, !location.isEmpty {
-                            Label(location, systemImage: "mappin")
+                        if !task.locationLabel.isEmpty {
+                            Label(task.locationLabel, systemImage: "mappin")
                                 .font(.subheadline)
                                 .foregroundStyle(TehefTheme.mutedForeground)
                         }

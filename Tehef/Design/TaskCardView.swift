@@ -31,8 +31,8 @@ struct TaskCardView: View {
               .foregroundStyle(TehefTheme.foreground)
           }
 
-          if let location = task.location, !location.isEmpty {
-            Label(location, systemImage: "mappin")
+          if !task.locationLabel.isEmpty {
+            Label(task.locationLabel, systemImage: "mappin")
               .font(isBrowse ? .system(size: 11) : .caption)
               .foregroundStyle(TehefTheme.mutedForeground)
               .lineLimit(1)
