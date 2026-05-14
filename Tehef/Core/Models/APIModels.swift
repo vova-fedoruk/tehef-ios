@@ -55,8 +55,8 @@ struct TaskLocation: Codable, Hashable {
     }
 }
 
-private enum FlexibleDouble {
-    static func decode(from container: KeyedDecodingContainer<TaskItem.CodingKeys>, forKey key: TaskItem.CodingKeys) throws -> Double? {
+private enum FlexibleValue {
+    static func double<Key: CodingKey>(from container: KeyedDecodingContainer<Key>, forKey key: Key) throws -> Double? {
         if let value = try? container.decode(Double.self, forKey: key) {
             return value
         }
@@ -65,6 +65,19 @@ private enum FlexibleDouble {
         }
         if let value = try? container.decode(String.self, forKey: key) {
             return Double(value)
+        }
+        return nil
+    }
+
+    static func int<Key: CodingKey>(from container: KeyedDecodingContainer<Key>, forKey key: Key) throws -> Int? {
+        if let value = try? container.decode(Int.self, forKey: key) {
+            return value
+        }
+        if let value = try? container.decode(Double.self, forKey: key) {
+            return Int(value)
+        }
+        if let value = try? container.decode(String.self, forKey: key) {
+            return Int(value) ?? Int(Double(value) ?? 0)
         }
         return nil
     }
@@ -85,6 +98,41 @@ struct User: Codable, Identifiable, Hashable {
     let location: TaskLocation?
     let bio: String?
     let preferredLanguage: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case email
+        case firstName
+        case lastName
+        case phone
+        case avatarUrl
+        case role
+        case isVerified
+        case emailVerified
+        case rating
+        case totalReviews
+        case location
+        case bio
+        case preferredLanguage
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(Int.self, forKey: .id)
+        email = try container.decode(String.self, forKey: .email)
+        firstName = try container.decode(String.self, forKey: .firstName)
+        lastName = try container.decode(String.self, forKey: .lastName)
+        phone = try container.decodeIfPresent(String.self, forKey: .phone)
+        avatarUrl = try container.decodeIfPresent(String.self, forKey: .avatarUrl)
+        role = try container.decode(String.self, forKey: .role)
+        isVerified = try container.decodeIfPresent(Bool.self, forKey: .isVerified)
+        emailVerified = try container.decodeIfPresent(Bool.self, forKey: .emailVerified)
+        rating = try FlexibleValue.double(from: container, forKey: .rating)
+        totalReviews = try FlexibleValue.int(from: container, forKey: .totalReviews)
+        location = try container.decodeIfPresent(TaskLocation.self, forKey: .location)
+        bio = try container.decodeIfPresent(String.self, forKey: .bio)
+        preferredLanguage = try container.decodeIfPresent(String.self, forKey: .preferredLanguage)
+    }
 
     var displayName: String {
         "\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces)
@@ -148,8 +196,8 @@ struct TaskItem: Codable, Identifiable, Hashable {
         id = try container.decode(Int.self, forKey: .id)
         title = try container.decode(String.self, forKey: .title)
         description = try container.decode(String.self, forKey: .description)
-        budgetMin = try FlexibleDouble.decode(from: container, forKey: .budgetMin)
-        budgetMax = try FlexibleDouble.decode(from: container, forKey: .budgetMax)
+        budgetMin = try FlexibleValue.double(from: container, forKey: .budgetMin)
+        budgetMax = try FlexibleValue.double(from: container, forKey: .budgetMax)
         location = try container.decodeIfPresent(TaskLocation.self, forKey: .location)
         status = try container.decode(String.self, forKey: .status)
         images = try container.decodeIfPresent([String].self, forKey: .images) ?? []
