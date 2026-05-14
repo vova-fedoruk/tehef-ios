@@ -7,7 +7,9 @@ struct ProfileView: View {
         NavigationStack {
             ZStack {
                 GlassBackdrop()
-                ScrollView {
+                VStack(spacing: 0) {
+                    TehefAppHeader(title: "Profile")
+                    ScrollView {
                     VStack(spacing: 16) {
                         if let user = appModel.sessionStore.user {
                             VStack(spacing: 12) {
@@ -63,9 +65,10 @@ struct ProfileView: View {
                         }
                     }
                     .padding(20)
+                    }
                 }
             }
-            .navigationTitle("Profile")
+            .navigationBarHidden(true)
         }
     }
 }

@@ -29,15 +29,14 @@ private struct LaunchView: View {
     var body: some View {
         ZStack {
             GlassBackdrop()
-            VStack(spacing: 16) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 42, weight: .semibold))
-                    .foregroundStyle(TehefTheme.primary)
-                Text("tehef")
-                    .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                    .foregroundStyle(TehefTheme.foreground)
+            ZStack {
+                Image("TehefFavicon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 56, height: 56)
                 ProgressView()
                     .tint(TehefTheme.primary)
+                    .offset(y: 52)
             }
             .padding(32)
             .glassCard(cornerRadius: 24)

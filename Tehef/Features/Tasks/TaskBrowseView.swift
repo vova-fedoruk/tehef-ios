@@ -41,19 +41,17 @@ struct TaskBrowseView: View {
     @State private var viewModel: TaskBrowseViewModel?
     @State private var searchText = ""
 
-    private let columns = [
-        GridItem(.flexible(), spacing: 16),
-        GridItem(.flexible(), spacing: 16),
-    ]
-
     var body: some View {
         NavigationStack {
             ZStack {
                 GlassBackdrop()
-                VStack(spacing: 16) {
+                VStack(spacing: 0) {
+                    TehefAppHeader(title: "Tasks")
+
                     if let viewModel {
                         GlassSearchField(text: $searchText, placeholder: "Search tasks")
                             .padding(.horizontal, 20)
+                            .padding(.bottom, 12)
                             .onSubmit {
                                 viewModel.searchText = searchText
                                 Task { await viewModel.load() }
@@ -72,31 +70,29 @@ struct TaskBrowseView: View {
                             Spacer()
                         } else {
                             ScrollView {
-                                LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
-                                    ForEach(viewModel.tasks) { task in
-                                        NavigationLink(value: task) {
-                                            TaskCardView(
-                                                task: task,
-                                                onToggleLike: { _, _ in
-                                                    if !appModel.isAuthenticated {
-                                                        appModel.openAuth()
-                                                    }
+                                TaskGridRows(items: viewModel.tasks, spacing: 16) { task in
+                                    NavigationLink(value: task) {
+                                        TaskCardView(
+                                            task: task,
+                                            onToggleLike: { _, _ in
+                                                if !appModel.isAuthenticated {
+                                                    appModel.openAuth()
                                                 }
-                                            )
-                                        }
-                                        .buttonStyle(.plain)
-                                        .frame(maxWidth: .infinity, alignment: .top)
+                                            }
+                                        )
                                     }
+                                    .buttonStyle(.plain)
                                 }
                                 .padding(.horizontal, 20)
                                 .padding(.bottom, 24)
                             }
                         }
+                    } else {
+                        Spacer()
                     }
                 }
-                .padding(.top, 12)
             }
-            .navigationTitle("Tasks")
+            .navigationBarHidden(true)
             .navigationDestination(for: TaskItem.self) { task in
                 TaskDetailView(task: task)
             }

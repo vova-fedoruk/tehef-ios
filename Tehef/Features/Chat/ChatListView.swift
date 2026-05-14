@@ -37,7 +37,9 @@ struct ChatListView: View {
         NavigationStack {
             ZStack {
                 GlassBackdrop()
-                Group {
+                VStack(spacing: 0) {
+                    TehefAppHeader(title: "Chat")
+                    Group {
                     if !appModel.isAuthenticated {
                         VStack(spacing: 16) {
                             Text("Sign in to open chats")
@@ -107,8 +109,9 @@ struct ChatListView: View {
                         }
                     }
                 }
+                }
             }
-            .navigationTitle("Chat")
+            .navigationBarHidden(true)
             .task {
                 guard appModel.isAuthenticated else { return }
                 if viewModel == nil {

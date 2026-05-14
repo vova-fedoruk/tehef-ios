@@ -28,6 +28,7 @@ struct TaskCardView: View {
                         .font(isBrowse ? .system(size: 13, weight: .medium) : .subheadline.weight(.medium))
                         .foregroundStyle(TehefTheme.foreground)
                         .lineLimit(2)
+                        .multilineTextAlignment(.leading)
 
                     if task.budgetMin != nil || task.budgetMax != nil {
                         Text(task.budgetLabel)
@@ -70,36 +71,34 @@ struct TaskCardView: View {
     private var taskImage: some View {
         let cornerRadius: CGFloat = isBrowse ? TehefTheme.radiusMedium : TehefTheme.radiusLarge
 
-        ZStack {
-            TehefTheme.muted
-
-            if let imageURL = task.images.first, let url = URL(string: imageURL) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    case .failure:
-                        placeholderContent
-                    default:
-                        ProgressView()
-                            .tint(TehefTheme.primary)
+        Color.clear
+            .aspectRatio(imageAspectRatio, contentMode: .fit)
+            .background(TehefTheme.muted)
+            .overlay {
+                if let imageURL = task.images.first, let url = URL(string: imageURL) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        case .failure:
+                            placeholderContent
+                        default:
+                            ProgressView()
+                                .tint(TehefTheme.primary)
+                        }
                     }
+                } else {
+                    placeholderContent
                 }
-            } else {
-                placeholderContent
             }
-        }
-        .frame(maxWidth: .infinity)
-        .aspectRatio(imageAspectRatio, contentMode: .fit)
-        .clipped()
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .stroke(TehefTheme.border.opacity(0.45), lineWidth: 1)
-        }
-        .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .clipped()
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(TehefTheme.border.opacity(0.45), lineWidth: 1)
+            }
     }
 
     private var placeholderContent: some View {

@@ -25,6 +25,7 @@
 		AA0000010000000000000010 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000010 /* Assets.xcassets */; };
 		AA0000010000000000000011 /* CategoryCirclesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000013 /* CategoryCirclesView.swift */; };
 		AA0000010000000000000012 /* TaskCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000014 /* TaskCardView.swift */; };
+		AA0000010000000000000013 /* TehefChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000015 /* TehefChrome.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,6 +49,7 @@
 		AA0001010000000000000012 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		AA0001010000000000000013 /* CategoryCirclesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryCirclesView.swift; sourceTree = "<group>"; };
 		AA0001010000000000000014 /* TaskCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskCardView.swift; sourceTree = "<group>"; };
+		AA0001010000000000000015 /* TehefChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TehefChrome.swift; sourceTree = "<group>"; };
 		AA0002010000000000000001 /* Tehef.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tehef.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -126,6 +128,7 @@
 				AA000401000000000000000D /* Glass */,
 				AA0001010000000000000013 /* CategoryCirclesView.swift */,
 				AA0001010000000000000014 /* TaskCardView.swift */,
+				AA0001010000000000000015 /* TehefChrome.swift */,
 			);
 			path = Design;
 			sourceTree = "<group>";
@@ -311,6 +314,7 @@
 				AA000001000000000000000F /* ChatListView.swift in Sources */,
 				AA0000010000000000000011 /* CategoryCirclesView.swift in Sources */,
 				AA0000010000000000000012 /* TaskCardView.swift in Sources */,
+				AA0000010000000000000013 /* TehefChrome.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

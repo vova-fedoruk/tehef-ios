@@ -50,19 +50,17 @@ struct HomeView: View {
     @Environment(AppModel.self) private var appModel
     @State private var viewModel: HomeViewModel?
 
-    private let taskColumns = [
-        GridItem(.flexible(), spacing: 16),
-        GridItem(.flexible(), spacing: 16),
-    ]
-
     var body: some View {
         NavigationStack {
             ZStack {
                 GlassBackdrop()
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 28) {
-                        hero
-                        if let viewModel {
+                VStack(spacing: 0) {
+                    TehefAppHeader()
+
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 28) {
+                            hero
+                            if let viewModel {
                             if viewModel.isLoading && viewModel.popularTasks.isEmpty {
                                 ProgressView()
                                     .tint(TehefTheme.primary)
@@ -95,10 +93,10 @@ struct HomeView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 28)
+                    }
                 }
             }
-            .navigationTitle("tehef")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarHidden(true)
             .navigationDestination(for: TaskItem.self) { task in
                 TaskDetailView(task: task)
             }
@@ -186,22 +184,19 @@ struct HomeView: View {
                         .foregroundStyle(TehefTheme.mutedForeground)
                 }
 
-                LazyVGrid(columns: taskColumns, alignment: .leading, spacing: 16) {
-                    ForEach(tasks) { task in
-                        NavigationLink(value: task) {
-                            TaskCardView(
-                                task: task,
-                                onToggleLike: { _, _ in
-                                    if appModel.isAuthenticated {
-                                        return
-                                    }
-                                    appModel.openAuth()
+                TaskGridRows(items: tasks, spacing: 16) { task in
+                    NavigationLink(value: task) {
+                        TaskCardView(
+                            task: task,
+                            onToggleLike: { _, _ in
+                                if appModel.isAuthenticated {
+                                    return
                                 }
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .frame(maxWidth: .infinity, alignment: .top)
+                                appModel.openAuth()
+                            }
+                        )
                     }
+                    .buttonStyle(.plain)
                 }
 
                 Button("View all tasks") {

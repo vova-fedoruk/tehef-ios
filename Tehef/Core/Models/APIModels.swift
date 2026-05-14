@@ -306,6 +306,8 @@ struct NotificationItem: Codable, Identifiable, Hashable {
     let type: String
     let title: String
     let body: String
+    let href: String?
+    let icon: String?
     let createdAt: String
     let readAt: String?
 }
