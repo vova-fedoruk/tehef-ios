@@ -2,7 +2,6 @@ import SwiftUI
 
 struct MainTabView: View {
     @Environment(AppModel.self) private var appModel
-    @State private var previousTab = 0
 
     var body: some View {
         @Bindable var appModel = appModel
@@ -20,7 +19,7 @@ struct MainTabView: View {
                 }
                 .tag(1)
 
-            Color.clear
+            TaskCreateTabView()
                 .tabItem {
                     Label("Post", systemImage: "plus.circle.fill")
                 }
@@ -39,13 +38,5 @@ struct MainTabView: View {
                 .tag(4)
         }
         .tint(TehefTheme.primary)
-        .onChange(of: appModel.selectedTab) { oldValue, newValue in
-            if newValue == 2 {
-                appModel.openCreateTask()
-                appModel.selectedTab = oldValue == 2 ? previousTab : oldValue
-                return
-            }
-            previousTab = newValue
-        }
     }
 }

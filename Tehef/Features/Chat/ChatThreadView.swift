@@ -76,6 +76,25 @@ final class ChatThreadViewModel {
             return false
         }
     }
+
+    func uploadAndSendVoice(data: Data) async -> Bool {
+        isSending = true
+        errorMessage = nil
+        defer { isSending = false }
+
+        do {
+            let url = try await apiClient.upload(
+                fileData: data,
+                fileName: "voice-\(UUID().uuidString).m4a",
+                mimeType: "audio/mp4",
+                type: "chat"
+            )
+            return await send(content: url, messageType: "audio")
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
 }
 
 struct ChatThreadView: View {
@@ -85,6 +104,7 @@ struct ChatThreadView: View {
     @State private var draft = ""
     @State private var attachmentItem: PhotosPickerItem?
     @State private var lightboxRoute: TehefImageLightboxRoute?
+    @State private var voiceRecorder = TehefVoiceRecorder()
 
     var body: some View {
         ZStack {
@@ -128,6 +148,8 @@ struct ChatThreadView: View {
                         text: $draft,
                         attachmentItem: $attachmentItem,
                         isSending: viewModel.isSending,
+                        isRecording: voiceRecorder.isRecording,
+                        recordingDuration: voiceRecorder.elapsed,
                         onSend: {
                             Task {
                                 let sent = await viewModel.send(content: draft)
@@ -135,8 +157,27 @@ struct ChatThreadView: View {
                                     draft = ""
                                 }
                             }
+                        },
+                        onStartVoice: {
+                            Task { await voiceRecorder.startRecording() }
+                        },
+                        onCancelVoice: {
+                            voiceRecorder.cancelRecording()
+                        },
+                        onSendVoice: {
+                            guard let data = voiceRecorder.finishRecording() else { return }
+                            Task {
+                                _ = await viewModel.uploadAndSendVoice(data: data)
+                            }
                         }
                     )
+
+                    if let voiceError = voiceRecorder.errorMessage {
+                        Text(voiceError)
+                            .font(.footnote)
+                            .foregroundStyle(TehefTheme.destructive)
+                            .padding(.horizontal, 20)
+                    }
                 }
             }
         }
@@ -278,55 +319,113 @@ struct TehefChatComposer: View {
     @Binding var text: String
     @Binding var attachmentItem: PhotosPickerItem?
     let isSending: Bool
+    let isRecording: Bool
+    let recordingDuration: TimeInterval
     let onSend: () -> Void
+    let onStartVoice: () -> Void
+    let onCancelVoice: () -> Void
+    let onSendVoice: () -> Void
+
+    private var trimmedText: String {
+        text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 10) {
-            PhotosPicker(selection: $attachmentItem, matching: .images) {
-                Image(systemName: "paperclip")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(TehefTheme.foreground)
-                    .frame(width: 42, height: 42)
-                    .background(TehefTheme.muted.opacity(0.92), in: Circle())
+            if isRecording {
+                recordingControls
+            } else {
+                PhotosPicker(selection: $attachmentItem, matching: .images) {
+                    Image(systemName: "paperclip")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(TehefTheme.foreground)
+                        .frame(width: 42, height: 42)
+                        .background(TehefTheme.muted.opacity(0.92), in: Circle())
+                        .overlay {
+                            Circle()
+                                .stroke(TehefTheme.border.opacity(0.7), lineWidth: 1)
+                        }
+                }
+                .buttonStyle(.plain)
+                .disabled(isSending)
+
+                TextField("Message", text: $text, axis: .vertical)
+                    .lineLimit(1...5)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 11)
+                    .background(TehefTheme.background.opacity(0.88), in: Capsule())
                     .overlay {
-                        Circle()
-                            .stroke(TehefTheme.border.opacity(0.7), lineWidth: 1)
+                        Capsule()
+                            .stroke(TehefTheme.border.opacity(0.75), lineWidth: 1)
                     }
-            }
-            .buttonStyle(.plain)
-            .disabled(isSending)
 
-            TextField("Message", text: $text, axis: .vertical)
-                .lineLimit(1...5)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 11)
-                .background(TehefTheme.background.opacity(0.88), in: Capsule())
-                .overlay {
-                    Capsule()
-                        .stroke(TehefTheme.border.opacity(0.75), lineWidth: 1)
-                }
-
-            Button {
-                onSend()
-            } label: {
-                Group {
-                    if isSending {
-                        ProgressView()
-                            .tint(.white)
-                    } else {
-                        Image(systemName: text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "mic.fill" : "arrow.up")
+                if trimmedText.isEmpty {
+                    Button(action: onStartVoice) {
+                        Image(systemName: "mic.fill")
                             .font(.system(size: 17, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 42, height: 42)
+                            .background(TehefTheme.accent, in: Circle())
                     }
+                    .buttonStyle(.plain)
+                    .disabled(isSending)
+                } else {
+                    Button(action: onSend) {
+                        Group {
+                            if isSending {
+                                ProgressView()
+                                    .tint(.white)
+                            } else {
+                                Image(systemName: "arrow.up")
+                                    .font(.system(size: 17, weight: .bold))
+                            }
+                        }
+                        .foregroundStyle(.white)
+                        .frame(width: 42, height: 42)
+                        .background(TehefTheme.accent, in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isSending)
                 }
-                .foregroundStyle(.white)
-                .frame(width: 42, height: 42)
-                .background(TehefTheme.accent, in: Circle())
             }
-            .buttonStyle(.plain)
-            .disabled(isSending || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(.ultraThinMaterial)
+    }
+
+    private var recordingControls: some View {
+        HStack(spacing: 10) {
+            Circle()
+                .fill(TehefTheme.primary)
+                .frame(width: 10, height: 10)
+
+            Text(formattedDuration(recordingDuration))
+                .font(.subheadline.weight(.semibold))
+                .monospacedDigit()
+                .foregroundStyle(TehefTheme.foreground)
+
+            Spacer()
+
+            Button("Cancel", action: onCancelVoice)
+                .buttonStyle(GlassSecondaryButtonStyle())
+
+            Button(action: onSendVoice) {
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 42, height: 42)
+                    .background(TehefTheme.accent, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .disabled(isSending)
+        }
+    }
+
+    private func formattedDuration(_ duration: TimeInterval) -> String {
+        let totalSeconds = max(0, Int(duration.rounded(.down)))
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        return String(format: "%d:%02d", minutes, seconds)
     }
 }

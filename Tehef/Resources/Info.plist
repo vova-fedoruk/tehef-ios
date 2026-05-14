@@ -31,6 +31,8 @@
 	</dict>
 	<key>UILaunchScreen</key>
 	<dict/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>tehef needs microphone access so you can send voice messages in chat.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>tehef needs access to your photo library so you can add task photos, chat images, and profile pictures.</string>
 	<key>UISupportedInterfaceOrientations</key>

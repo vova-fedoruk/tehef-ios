@@ -165,7 +165,6 @@ struct TaskCreateView: View {
         do {
             try await viewModel.create(request: request)
             appModel.openTasksTab()
-            dismiss()
         } catch {
             errorMessage = error.localizedDescription
         }

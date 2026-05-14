@@ -39,6 +39,8 @@
 		AA000001000000000000001E /* TehefMediaPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000022 /* TehefMediaPicker.swift */; };
 		AA000001000000000000001F /* TehefVideoPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000023 /* TehefVideoPlayer.swift */; };
 		AA0000010000000000000020 /* TehefImageLightbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000024 /* TehefImageLightbox.swift */; };
+		AA0000010000000000000021 /* TehefVoiceRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000025 /* TehefVoiceRecorder.swift */; };
+		AA0000010000000000000022 /* TaskCreateTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000026 /* TaskCreateTabView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -76,6 +78,8 @@
 		AA0001010000000000000022 /* TehefMediaPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TehefMediaPicker.swift; sourceTree = "<group>"; };
 		AA0001010000000000000023 /* TehefVideoPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TehefVideoPlayer.swift; sourceTree = "<group>"; };
 		AA0001010000000000000024 /* TehefImageLightbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TehefImageLightbox.swift; sourceTree = "<group>"; };
+		AA0001010000000000000025 /* TehefVoiceRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TehefVoiceRecorder.swift; sourceTree = "<group>"; };
+		AA0001010000000000000026 /* TaskCreateTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskCreateTabView.swift; sourceTree = "<group>"; };
 		AA0002010000000000000001 /* Tehef.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tehef.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -236,6 +240,7 @@
 				AA0001010000000000000017 /* TaskHubView.swift */,
 				AA0001010000000000000018 /* TaskApplyView.swift */,
 				AA0001010000000000000019 /* TaskCreateView.swift */,
+				AA0001010000000000000026 /* TaskCreateTabView.swift */,
 			);
 			path = Tasks;
 			sourceTree = "<group>";
@@ -263,6 +268,7 @@
 			children = (
 				AA000101000000000000000F /* ChatListView.swift */,
 				AA000101000000000000001C /* ChatThreadView.swift */,
+				AA0001010000000000000025 /* TehefVoiceRecorder.swift */,
 			);
 			path = Chat;
 			sourceTree = "<group>";
@@ -367,6 +373,8 @@
 				AA000001000000000000001E /* TehefMediaPicker.swift in Sources */,
 				AA000001000000000000001F /* TehefVideoPlayer.swift in Sources */,
 				AA0000010000000000000020 /* TehefImageLightbox.swift in Sources */,
+				AA0000010000000000000021 /* TehefVoiceRecorder.swift in Sources */,
+				AA0000010000000000000022 /* TaskCreateTabView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
