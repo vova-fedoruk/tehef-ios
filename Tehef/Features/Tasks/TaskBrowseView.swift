@@ -17,7 +17,6 @@ enum TaskBrowseSection: String, CaseIterable, Identifiable {
 struct TaskBrowseFilters: Equatable {
     var search = ""
     var categoryId: Int?
-    var status = "open"
     var minBudget = ""
     var maxBudget = ""
 
@@ -25,7 +24,6 @@ struct TaskBrowseFilters: Equatable {
         var count = 0
         if !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { count += 1 }
         if categoryId != nil { count += 1 }
-        if status != "open" { count += 1 }
         if !minBudget.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { count += 1 }
         if !maxBudget.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { count += 1 }
         return count
@@ -83,9 +81,6 @@ final class TaskBrowseViewModel {
         if let categoryId = filters.categoryId {
             queryItems.append(URLQueryItem(name: "category", value: String(categoryId)))
         }
-        if !filters.status.isEmpty {
-            queryItems.append(URLQueryItem(name: "status", value: filters.status))
-        }
         let minBudget = filters.minBudget.trimmingCharacters(in: .whitespacesAndNewlines)
         if !minBudget.isEmpty {
             queryItems.append(URLQueryItem(name: "minBudget", value: minBudget))
@@ -124,7 +119,7 @@ struct TaskBrowseView: View {
     @State private var selectedSection: TaskBrowseSection = .all
     @State private var isFilterSheetPresented = false
     @State private var draftFilters = TaskBrowseFilters()
-    @State private var isBrowsingChromeVisible = true
+    @State private var areSubTabsVisible = true
     @State private var lastScrollOffset: CGFloat = 0
 
     var body: some View {
@@ -136,10 +131,6 @@ struct TaskBrowseView: View {
 
                     if let viewModel {
                         browsingChrome(for: viewModel)
-                            .frame(maxHeight: isBrowsingChromeVisible ? nil : 0, alignment: .top)
-                            .opacity(isBrowsingChromeVisible ? 1 : 0)
-                            .clipped()
-                            .animation(.easeInOut(duration: 0.22), value: isBrowsingChromeVisible)
 
                         browsingContent(for: viewModel)
                     } else {
@@ -183,62 +174,118 @@ struct TaskBrowseView: View {
 
     @ViewBuilder
     private func browsingChrome(for viewModel: TaskBrowseViewModel) -> some View {
-        VStack(spacing: 12) {
-            Picker("Tasks", selection: $selectedSection) {
-                ForEach(TaskBrowseSection.allCases) { section in
-                    Text(section.title).tag(section)
-                }
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 20)
+        VStack(spacing: 14) {
+            TaskBrowseSegmentedControl(selection: $selectedSection)
+                .padding(.horizontal, 16)
+                .opacity(areSubTabsVisible ? 1 : 0)
+                .frame(maxHeight: areSubTabsVisible ? nil : 0, alignment: .top)
+                .clipped()
+                .allowsHitTesting(areSubTabsVisible)
+                .animation(.easeInOut(duration: 0.22), value: areSubTabsVisible)
 
             if selectedSection == .all {
-                HStack(spacing: 10) {
-                    GlassSearchField(text: $searchText, placeholder: "Search tasks")
-                        .onSubmit {
-                            viewModel.filters.search = searchText
-                            Task { await viewModel.load() }
-                        }
-
-                    Button {
-                        draftFilters = viewModel.filters
-                        draftFilters.search = searchText
-                        isFilterSheetPresented = true
-                    } label: {
-                        ZStack(alignment: .topTrailing) {
-                            Image(systemName: "line.3.horizontal.decrease.circle")
-                                .font(.system(size: 22, weight: .semibold))
-                                .foregroundStyle(TehefTheme.foreground)
-                                .frame(width: 44, height: 44)
-                                .background(TehefTheme.background.opacity(0.72), in: Circle())
-                                .overlay {
-                                    Circle()
-                                        .stroke(TehefTheme.border, lineWidth: 1)
+                VStack(spacing: 10) {
+                    HStack(spacing: 10) {
+                        GlassSearchField(text: $searchText, placeholder: "Search tasks")
+                            .onSubmit {
+                                applySearch(to: viewModel)
+                            }
+                            .onChange(of: searchText) { _, newValue in
+                                if newValue.isEmpty && !viewModel.filters.search.isEmpty {
+                                    applySearch(to: viewModel)
                                 }
+                            }
 
-                            if viewModel.filters.activeCount > 0 {
-                                Text("\(viewModel.filters.activeCount)")
-                                    .font(.caption2.weight(.bold))
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 5)
-                                    .padding(.vertical, 2)
-                                    .background(TehefTheme.primary, in: Capsule())
-                                    .offset(x: 4, y: -4)
+                        Button {
+                            applySearch(to: viewModel)
+                        } label: {
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 17, weight: .bold))
+                                .foregroundStyle(TehefTheme.primaryForeground)
+                                .frame(width: 46, height: 46)
+                                .background(TehefTheme.accent, in: Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Search tasks")
+
+                        Button {
+                            draftFilters = viewModel.filters
+                            draftFilters.search = searchText
+                            isFilterSheetPresented = true
+                        } label: {
+                            ZStack(alignment: .topTrailing) {
+                                Image(systemName: "slider.horizontal.3")
+                                    .font(.system(size: 19, weight: .semibold))
+                                    .foregroundStyle(viewModel.filters.activeCount > 0 ? TehefTheme.accent : TehefTheme.foreground)
+                                    .frame(width: 46, height: 46)
+                                    .background(TehefTheme.background.opacity(0.92), in: Circle())
+                                    .overlay {
+                                        Circle()
+                                            .stroke(viewModel.filters.activeCount > 0 ? TehefTheme.accent.opacity(0.55) : TehefTheme.border, lineWidth: 1)
+                                    }
+
+                                if viewModel.filters.activeCount > 0 {
+                                    Text("\(viewModel.filters.activeCount)")
+                                        .font(.caption2.weight(.bold))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 5)
+                                        .padding(.vertical, 2)
+                                        .background(TehefTheme.primary, in: Capsule())
+                                        .offset(x: 4, y: -4)
+                                }
                             }
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Filter tasks")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Filter tasks")
+                    .padding(.horizontal, 16)
+
+                    activeFilterBar(for: viewModel)
                 }
-                .padding(.horizontal, 20)
             }
         }
-        .padding(.bottom, 12)
+        .padding(.bottom, 16)
+        .background {
+            LinearGradient(
+                colors: [
+                    TehefTheme.background.opacity(0.96),
+                    TehefTheme.background.opacity(0.90),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea(edges: .horizontal)
+        }
         .onChange(of: selectedSection) { _, newSection in
-            isBrowsingChromeVisible = true
+            areSubTabsVisible = true
             lastScrollOffset = 0
             viewModel.section = newSection
             Task { await viewModel.load() }
+        }
+    }
+
+    @ViewBuilder
+    private func activeFilterBar(for viewModel: TaskBrowseViewModel) -> some View {
+        let chips = activeFilterChips(for: viewModel)
+        if !chips.isEmpty {
+            ScrollView(.horizontal) {
+                HStack(spacing: 8) {
+                    ForEach(chips, id: \.self) { chip in
+                        Text(chip)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(TehefTheme.accent)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(TehefTheme.accentSoft, in: Capsule())
+                            .overlay {
+                                Capsule()
+                                    .stroke(TehefTheme.accent.opacity(0.35), lineWidth: 1)
+                            }
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
+            .scrollIndicators(.hidden)
         }
     }
 
@@ -283,34 +330,50 @@ struct TaskBrowseView: View {
             Spacer()
         } else {
             ScrollView {
-                TaskGridRows(items: viewModel.tasks, spacing: 16) { task in
-                    NavigationLink(value: task) {
-                        TaskCardView(
-                            task: task,
-                            onToggleLike: { _, _ in
-                                if !appModel.isAuthenticated {
-                                    appModel.openAuth()
-                                }
-                            }
-                        )
+                LazyVStack(alignment: .leading, spacing: 14) {
+                    HStack {
+                        Text("\(viewModel.tasks.count) \(viewModel.tasks.count == 1 ? "task" : "tasks")")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(TehefTheme.mutedForeground)
+                        Spacer()
                     }
-                    .buttonStyle(.plain)
+                    .padding(.horizontal, 16)
+
+                    TaskGridRows(items: viewModel.tasks, spacing: 12) { task in
+                        NavigationLink(value: task) {
+                            TaskCardView(
+                                task: task,
+                                onToggleLike: { _, _ in
+                                    if !appModel.isAuthenticated {
+                                        appModel.openAuth()
+                                    }
+                                }
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 16)
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 24)
+                .padding(.top, 14)
+                .padding(.bottom, 96)
             }
+            .scrollDismissesKeyboard(.interactively)
             .onScrollGeometryChange(for: CGFloat.self) { geometry in
                 geometry.contentOffset.y
             } action: { _, offset in
                 guard offset >= 0 else { return }
-                let delta = offset - lastScrollOffset
+
+                let scrollingDown = offset > lastScrollOffset + 6
+                let scrollingUp = offset < lastScrollOffset - 6
+
                 if offset <= 8 {
-                    isBrowsingChromeVisible = true
-                } else if delta > 12 {
-                    isBrowsingChromeVisible = false
-                } else if delta < -12 {
-                    isBrowsingChromeVisible = true
+                    areSubTabsVisible = true
+                } else if scrollingDown {
+                    areSubTabsVisible = false
+                } else if scrollingUp {
+                    areSubTabsVisible = true
                 }
+
                 lastScrollOffset = offset
             }
         }
@@ -338,9 +401,80 @@ struct TaskBrowseView: View {
     private func applyDraftFilters(to viewModel: TaskBrowseViewModel) {
         searchText = draftFilters.search
         viewModel.filters = draftFilters
-        isBrowsingChromeVisible = true
-        lastScrollOffset = 0
         Task { await viewModel.load() }
+    }
+
+    private func applySearch(to viewModel: TaskBrowseViewModel) {
+        viewModel.filters.search = searchText
+        Task { await viewModel.load() }
+    }
+
+    private func activeFilterChips(for viewModel: TaskBrowseViewModel) -> [String] {
+        var chips: [String] = []
+        let filters = viewModel.filters
+        let search = filters.search.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !search.isEmpty {
+            chips.append("\"\(search)\"")
+        }
+        if let categoryId = filters.categoryId,
+           let category = viewModel.categories.first(where: { $0.id == categoryId }) {
+            chips.append(category.name)
+        }
+        let minBudget = filters.minBudget.trimmingCharacters(in: .whitespacesAndNewlines)
+        let maxBudget = filters.maxBudget.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !minBudget.isEmpty || !maxBudget.isEmpty {
+            switch (minBudget.isEmpty, maxBudget.isEmpty) {
+            case (false, false):
+                chips.append("₪\(minBudget)-₪\(maxBudget)")
+            case (false, true):
+                chips.append("From ₪\(minBudget)")
+            case (true, false):
+                chips.append("Up to ₪\(maxBudget)")
+            case (true, true):
+                break
+            }
+        }
+        return chips
+    }
+}
+
+private struct TaskBrowseSegmentedControl: View {
+    @Binding var selection: TaskBrowseSection
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(TaskBrowseSection.allCases) { section in
+                Button {
+                    withAnimation(.snappy(duration: 0.24)) {
+                        selection = section
+                    }
+                } label: {
+                    Text(section.title)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(selection == section ? .white : TehefTheme.foreground)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 40)
+                        .background {
+                            if selection == section {
+                                Capsule()
+                                    .fill(TehefTheme.accent.opacity(0.92))
+                            }
+                        }
+                        .glassEffect(
+                            selection == section ? .regular.tint(TehefTheme.accent).interactive() : .identity,
+                            in: .capsule
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(4)
+        .background(TehefTheme.background.opacity(0.55), in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(TehefTheme.border.opacity(0.65), lineWidth: 1)
+        }
+        .glassEffect(.regular, in: .capsule)
     }
 }
 
@@ -352,49 +486,20 @@ private struct TaskBrowseFilterSheet: View {
     let onClear: () -> Void
     let onApply: () -> Void
 
-    private let statusOptions: [(value: String, label: String)] = [
-        ("open", "Open"),
-        ("assigned", "Assigned"),
-        ("in_progress", "In progress"),
-        ("completed", "Completed"),
-    ]
-
     var body: some View {
         NavigationStack {
             ZStack {
                 GlassBackdrop()
-                Form {
-                    Section("Search") {
-                        TextField("Search tasks", text: $filters.search)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        filterSearchSection
+                        categorySection
+                        budgetSection
                     }
-
-                    Section("Category") {
-                        Picker("Category", selection: $filters.categoryId) {
-                            Text("All categories").tag(Optional<Int>.none)
-                            ForEach(categories) { category in
-                                Text(category.name).tag(Optional(category.id))
-                            }
-                        }
-                    }
-
-                    Section("Status") {
-                        Picker("Status", selection: $filters.status) {
-                            ForEach(statusOptions, id: \.value) { option in
-                                Text(option.label).tag(option.value)
-                            }
-                        }
-                    }
-
-                    Section("Budget") {
-                        TextField("Min", text: $filters.minBudget)
-                            .keyboardType(.decimalPad)
-                        TextField("Max", text: $filters.maxBudget)
-                            .keyboardType(.decimalPad)
-                    }
+                    .padding(20)
+                    .padding(.bottom, 16)
                 }
-                .scrollContentBackground(.hidden)
+                .scrollDismissesKeyboard(.interactively)
             }
             .navigationTitle("Filters")
             .navigationBarTitleDisplayMode(.inline)
@@ -412,5 +517,89 @@ private struct TaskBrowseFilterSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
+    }
+
+    private var filterSearchSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Search")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(TehefTheme.foreground)
+
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(TehefTheme.mutedForeground)
+                TextField("Search tasks", text: $filters.search)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            }
+            .tehefField()
+        }
+        .glassCard(cornerRadius: 20)
+    }
+
+    private var categorySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Category")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(TehefTheme.foreground)
+
+            Menu {
+                Button("All categories") {
+                    filters.categoryId = nil
+                }
+                ForEach(categories) { category in
+                    Button(category.name) {
+                        filters.categoryId = category.id
+                    }
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "square.grid.2x2")
+                        .foregroundStyle(TehefTheme.accent)
+                    Text(selectedCategoryName)
+                        .foregroundStyle(TehefTheme.foreground)
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(TehefTheme.mutedForeground)
+                }
+                .tehefField()
+            }
+            .buttonStyle(.plain)
+        }
+        .glassCard(cornerRadius: 20)
+    }
+
+    private var budgetSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Budget")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(TehefTheme.foreground)
+
+            HStack(spacing: 10) {
+                budgetField(title: "Min", text: $filters.minBudget)
+                budgetField(title: "Max", text: $filters.maxBudget)
+            }
+        }
+        .glassCard(cornerRadius: 20)
+    }
+
+    private func budgetField(title: String, text: Binding<String>) -> some View {
+        HStack(spacing: 8) {
+            Text("₪")
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(TehefTheme.mutedForeground)
+            TextField(title, text: text)
+                .keyboardType(.decimalPad)
+        }
+        .tehefField()
+    }
+
+    private var selectedCategoryName: String {
+        guard let categoryId = filters.categoryId,
+              let category = categories.first(where: { $0.id == categoryId }) else {
+            return "All categories"
+        }
+        return category.name
     }
 }

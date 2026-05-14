@@ -92,26 +92,56 @@ struct TehefTaskImageGallery: View {
     let onOpen: (Int) -> Void
 
     @State private var selectedIndex = 0
-    @State private var dragActive = false
+    @State private var galleryScrollOffset: CGFloat = 0
+    @State private var galleryDidScroll = false
 
     var body: some View {
         if images.isEmpty {
             EmptyView()
         } else if images.count == 1 {
-            galleryImage(images[0], index: 0)
+            galleryImage(images[0], index: 0, width: nil)
                 .frame(maxWidth: .infinity)
                 .frame(height: 260)
         } else {
             VStack(spacing: 12) {
-                TabView(selection: $selectedIndex) {
-                    ForEach(Array(images.enumerated()), id: \.offset) { index, imageURL in
-                        galleryImage(imageURL, index: index)
-                            .padding(.horizontal, 2)
-                            .tag(index)
+                GeometryReader { geometry in
+                    ScrollView(.horizontal) {
+                        LazyHStack(spacing: 0) {
+                            ForEach(Array(images.enumerated()), id: \.offset) { index, imageURL in
+                                galleryImage(imageURL, index: index, width: geometry.size.width)
+                                    .id(index)
+                            }
+                        }
+                        .scrollTargetLayout()
+                    }
+                    .scrollTargetBehavior(.paging)
+                    .scrollPosition(id: Binding(
+                        get: { selectedIndex },
+                        set: { newValue in
+                            guard let newValue else { return }
+                            if newValue != selectedIndex {
+                                galleryDidScroll = true
+                                selectedIndex = newValue
+                            }
+                        }
+                    ))
+                    .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                        geometry.contentOffset.x
+                    } action: { _, offset in
+                        if abs(offset - galleryScrollOffset) > 6 {
+                            galleryDidScroll = true
+                        }
+                        galleryScrollOffset = offset
+                    }
+                    .onScrollPhaseChange { _, newPhase in
+                        if newPhase == .idle {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                                galleryDidScroll = false
+                            }
+                        }
                     }
                 }
                 .frame(height: 260)
-                .tabViewStyle(.page(indexDisplayMode: .never))
 
                 HStack {
                     Text("\(selectedIndex + 1) / \(images.count)")
@@ -136,33 +166,24 @@ struct TehefTaskImageGallery: View {
     }
 
     @ViewBuilder
-    private func galleryImage(_ imageURL: String, index: Int) -> some View {
-        Button {
-            guard !dragActive else { return }
-            onOpen(index)
-        } label: {
-            TehefRemoteImage(urlString: imageURL, cornerRadius: TehefTheme.radiusLarge)
-                .frame(maxWidth: .infinity)
-                .frame(height: 260)
-                .overlay(alignment: .topTrailing) {
-                    Image(systemName: "arrow.up.left.and.arrow.down.right")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(.white)
-                        .padding(8)
-                        .background(.black.opacity(0.45), in: Circle())
-                        .padding(12)
-                }
-        }
-        .buttonStyle(.plain)
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 8)
-                .onChanged { _ in dragActive = true }
-                .onEnded { _ in
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-                        dragActive = false
-                    }
-                }
-        )
+    private func galleryImage(_ imageURL: String, index: Int, width: CGFloat?) -> some View {
+        TehefRemoteImage(urlString: imageURL, cornerRadius: TehefTheme.radiusLarge)
+            .frame(maxWidth: .infinity)
+            .frame(width: width, height: 260)
+            .contentShape(RoundedRectangle(cornerRadius: TehefTheme.radiusLarge, style: .continuous))
+            .onTapGesture {
+                guard !galleryDidScroll else { return }
+                onOpen(index)
+            }
+            .overlay(alignment: .topTrailing) {
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white)
+                    .padding(8)
+                    .background(.black.opacity(0.45), in: Circle())
+                    .padding(12)
+                    .allowsHitTesting(false)
+            }
     }
 }
 
