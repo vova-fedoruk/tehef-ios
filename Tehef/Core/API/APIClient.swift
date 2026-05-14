@@ -90,6 +90,47 @@ final class APIClient {
         _ = try await sendData(request)
     }
 
+    func upload(fileData: Data, fileName: String, mimeType: String, type: String) async throws -> String {
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var body = Data()
+        body.appendMultipartField(name: "type", value: type, boundary: boundary)
+        body.appendMultipartFile(
+            name: "file",
+            fileName: fileName,
+            mimeType: mimeType,
+            fileData: fileData,
+            boundary: boundary
+        )
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+
+        guard var components = URLComponents(url: APIEnvironment.baseURL.appendingPathComponent("api/upload"), resolvingAgainstBaseURL: false) else {
+            throw APIError.invalidURL
+        }
+        guard let url = components.url else {
+            throw APIError.invalidURL
+        }
+
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = HTTPMethod.post.rawValue
+        urlRequest.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Accept")
+        urlRequest.httpBody = body
+
+        guard let token = sessionStore.accessToken else {
+            throw APIError.unauthorized
+        }
+        urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await urlSession.data(for: urlRequest)
+        let responseData = try await handleResponse(
+            data: data,
+            response: response,
+            originalRequest: APIRequest(path: "api/upload", method: .post, requiresAuth: true)
+        )
+        let payload = try decoder.decode(UploadResponse.self, from: responseData)
+        return payload.url
+    }
+
     private func buildURLRequest(for request: APIRequest) async throws -> URLRequest {
         guard var components = URLComponents(url: APIEnvironment.baseURL.appendingPathComponent(request.path), resolvingAgainstBaseURL: false) else {
             throw APIError.invalidURL
@@ -167,5 +208,21 @@ private struct AnyEncodable: Encodable {
 
     func encode(to encoder: Encoder) throws {
         try encodeClosure(encoder)
+    }
+}
+
+private extension Data {
+    mutating func appendMultipartField(name: String, value: String, boundary: String) {
+        append("--\(boundary)\r\n".data(using: .utf8)!)
+        append("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".data(using: .utf8)!)
+        append("\(value)\r\n".data(using: .utf8)!)
+    }
+
+    mutating func appendMultipartFile(name: String, fileName: String, mimeType: String, fileData: Data, boundary: String) {
+        append("--\(boundary)\r\n".data(using: .utf8)!)
+        append("Content-Disposition: form-data; name=\"\(name)\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+        append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        append(fileData)
+        append("\r\n".data(using: .utf8)!)
     }
 }

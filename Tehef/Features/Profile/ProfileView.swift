@@ -18,9 +18,11 @@ struct ProfileView: View {
                         VStack(spacing: 16) {
                             if let user = appModel.sessionStore.user {
                                 VStack(spacing: 12) {
-                                    Image(systemName: "person.crop.circle.fill")
-                                        .font(.system(size: 72))
-                                        .foregroundStyle(TehefTheme.primary)
+                                    TehefAvatarView(
+                                        urlString: user.avatarUrl,
+                                        name: user.displayName,
+                                        size: 96
+                                    )
                                     Text(user.displayName)
                                         .font(.system(.title2, design: .rounded, weight: .bold))
                                         .foregroundStyle(TehefTheme.foreground)

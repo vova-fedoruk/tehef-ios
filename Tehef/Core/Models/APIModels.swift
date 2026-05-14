@@ -385,3 +385,7 @@ struct SendMessageRequest: Encodable {
         case messageType = "message_type"
     }
 }
+
+struct UploadResponse: Decodable {
+    let url: String
+}

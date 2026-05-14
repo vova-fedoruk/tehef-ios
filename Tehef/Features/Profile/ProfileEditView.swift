@@ -1,3 +1,4 @@
+import PhotosUI
 import SwiftUI
 
 @MainActor
@@ -48,6 +49,9 @@ struct ProfileEditView: View {
     @State private var bio = ""
     @State private var city = ""
     @State private var address = ""
+    @State private var avatarURL = ""
+    @State private var avatarPickerItem: PhotosPickerItem?
+    @State private var isUploadingAvatar = false
 
     var body: some View {
         TehefScreenContainer(title: "Edit profile") {
@@ -55,6 +59,34 @@ struct ProfileEditView: View {
                 VStack(spacing: 16) {
                     TehefFormSection(title: "Profile") {
                         VStack(spacing: 14) {
+                            PhotosPicker(selection: $avatarPickerItem, matching: .images) {
+                                ZStack(alignment: .bottomTrailing) {
+                                    TehefAvatarView(
+                                        urlString: avatarURL.isEmpty ? appModel.sessionStore.user?.avatarUrl : avatarURL,
+                                        name: "\(firstName) \(lastName)",
+                                        size: 96
+                                    )
+
+                                    Image(systemName: "camera.fill")
+                                        .font(.caption.weight(.bold))
+                                        .foregroundStyle(.white)
+                                        .padding(8)
+                                        .background(TehefTheme.accent, in: Circle())
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .frame(maxWidth: .infinity)
+                            .overlay {
+                                if isUploadingAvatar {
+                                    ProgressView()
+                                        .tint(TehefTheme.primary)
+                                }
+                            }
+
+                            Text("Tap photo to change")
+                                .font(.caption)
+                                .foregroundStyle(TehefTheme.mutedForeground)
+
                             TehefTextField(title: "First name", text: $firstName)
                             TehefTextField(title: "Last name", text: $lastName)
                             TehefTextField(title: "Phone", text: $phone)
@@ -99,7 +131,33 @@ struct ProfileEditView: View {
                 bio = user.bio ?? ""
                 city = user.location?.city ?? ""
                 address = user.location?.address ?? ""
+                avatarURL = user.avatarUrl ?? ""
             }
+        }
+        .onChange(of: avatarPickerItem) { _, newItem in
+            guard let newItem else { return }
+            Task { await uploadAvatar(from: newItem) }
+        }
+    }
+
+    private func uploadAvatar(from item: PhotosPickerItem) async {
+        isUploadingAvatar = true
+        defer {
+            isUploadingAvatar = false
+            avatarPickerItem = nil
+        }
+
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self) else { return }
+            let url = try await appModel.apiClient.upload(
+                fileData: data,
+                fileName: "avatar-\(UUID().uuidString).jpg",
+                mimeType: "image/jpeg",
+                type: "profile"
+            )
+            avatarURL = url
+        } catch {
+            viewModel?.errorMessage = error.localizedDescription
         }
     }
 
@@ -117,7 +175,7 @@ struct ProfileEditView: View {
                 bio: bio.isEmpty ? nil : bio,
                 skills: [],
                 location: location,
-                avatarUrl: appModel.sessionStore.user?.avatarUrl,
+                avatarUrl: avatarURL.isEmpty ? nil : avatarURL,
                 preferredLanguage: appModel.sessionStore.user?.preferredLanguage
             )
         )

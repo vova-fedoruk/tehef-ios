@@ -31,6 +31,8 @@
 	</dict>
 	<key>UILaunchScreen</key>
 	<dict/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>tehef needs access to your photo library so you can add task photos, chat images, and profile pictures.</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

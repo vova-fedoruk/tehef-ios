@@ -1,3 +1,4 @@
+import PhotosUI
 import SwiftUI
 
 @MainActor
@@ -31,7 +32,7 @@ final class ChatThreadViewModel {
         }
     }
 
-    func send(content: String) async -> Bool {
+    func send(content: String, messageType: String = "text") async -> Bool {
         let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return false }
 
@@ -44,13 +45,32 @@ final class ChatThreadViewModel {
                 APIRequest(
                     path: "api/chat/conversations/\(conversation.id)/messages",
                     method: .post,
-                    body: SendMessageRequest(content: trimmed),
+                    body: SendMessageRequest(content: trimmed, messageType: messageType),
                     requiresAuth: true
                 ),
                 responseType: ChatMessage.self
             )
             messages.append(message)
             return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    func uploadAndSendImage(data: Data, fileName: String, mimeType: String) async -> Bool {
+        isSending = true
+        errorMessage = nil
+        defer { isSending = false }
+
+        do {
+            let url = try await apiClient.upload(
+                fileData: data,
+                fileName: fileName,
+                mimeType: mimeType,
+                type: "chat"
+            )
+            return await send(content: url, messageType: "image")
         } catch {
             errorMessage = error.localizedDescription
             return false
@@ -63,6 +83,7 @@ struct ChatThreadView: View {
     let conversation: ConversationSummary
     @State private var viewModel: ChatThreadViewModel?
     @State private var draft = ""
+    @State private var attachmentItem: PhotosPickerItem?
 
     var body: some View {
         ZStack {
@@ -104,6 +125,7 @@ struct ChatThreadView: View {
 
                     TehefChatComposer(
                         text: $draft,
+                        attachmentItem: $attachmentItem,
                         isSending: viewModel.isSending,
                         onSend: {
                             Task {
@@ -119,26 +141,59 @@ struct ChatThreadView: View {
         }
         .navigationTitle(conversation.otherUserName)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .task {
             if viewModel == nil {
                 viewModel = ChatThreadViewModel(apiClient: appModel.apiClient, conversation: conversation)
             }
             await viewModel?.load()
         }
+        .onChange(of: attachmentItem) { _, newItem in
+            guard let newItem, let viewModel else { return }
+            Task {
+                guard let data = try? await newItem.loadTransferable(type: Data.self) else { return }
+                let sent = await viewModel.uploadAndSendImage(
+                    data: data,
+                    fileName: "chat-\(UUID().uuidString).jpg",
+                    mimeType: "image/jpeg"
+                )
+                if sent {
+                    attachmentItem = nil
+                }
+            }
+        }
     }
 
     @ViewBuilder
     private func messageBubble(_ message: ChatMessage) -> some View {
         let isMine = message.senderId == appModel.sessionStore.user?.id
-        HStack {
-            if isMine { Spacer(minLength: 48) }
+        let senderName = [message.firstName, message.lastName]
+            .compactMap { $0 }
+            .joined(separator: " ")
+
+        HStack(alignment: .bottom, spacing: 8) {
+            if isMine {
+                Spacer(minLength: 48)
+            } else {
+                TehefAvatarView(
+                    urlString: message.avatarUrl ?? conversation.otherUserAvatar,
+                    name: senderName.isEmpty ? conversation.otherUserName : senderName,
+                    size: 32
+                )
+            }
+
             VStack(alignment: isMine ? .trailing : .leading, spacing: 4) {
                 messageContent(message, isMine: isMine)
-                Text(message.createdAt)
-                    .font(.caption2)
-                    .foregroundStyle(TehefTheme.mutedForeground)
+                if let timestamp = formattedTimestamp(message.createdAt) {
+                    Text(timestamp)
+                        .font(.caption2)
+                        .foregroundStyle(TehefTheme.mutedForeground)
+                }
             }
-            if !isMine { Spacer(minLength: 48) }
+
+            if !isMine {
+                Spacer(minLength: 48)
+            }
         }
     }
 
@@ -148,20 +203,23 @@ struct ChatThreadView: View {
         case "image":
             TehefRemoteImage(
                 urlString: message.content,
-                contentMode: .fill,
                 cornerRadius: 16,
                 showsBorder: false
             )
             .frame(maxWidth: 240, maxHeight: 240)
-            .background(bubbleBackground(isMine: isMine), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         case "video":
-            TehefRemoteImage(
-                urlString: message.content,
-                contentMode: .fit,
-                cornerRadius: 16,
-                showsBorder: false
-            )
-            .frame(maxWidth: 260, maxHeight: 180)
+            TehefVideoMessageView(urlString: message.content)
+        case "audio":
+            TehefAudioMessageView(urlString: message.content, isMine: isMine)
+                .background(bubbleBackground(isMine: isMine), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        case "file":
+            Link(destination: TehefMediaURL.resolve(message.content) ?? URL(string: "https://tehef.io")!) {
+                Label("Attachment", systemImage: "paperclip")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(isMine ? .white : TehefTheme.foreground)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+            }
             .background(bubbleBackground(isMine: isMine), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         default:
             Text(message.content)
@@ -174,7 +232,12 @@ struct ChatThreadView: View {
     }
 
     private func bubbleBackground(isMine: Bool) -> Color {
-        isMine ? TehefTheme.primary : TehefTheme.card.opacity(0.92)
+        isMine ? TehefTheme.accent : TehefTheme.card.opacity(0.96)
+    }
+
+    private func formattedTimestamp(_ raw: String) -> String? {
+        let formatted = TehefDateFormat.chatTimestamp(raw)
+        return formatted.isEmpty ? nil : formatted
     }
 
     private func resolvedMessageType(for message: ChatMessage) -> String {
@@ -183,11 +246,16 @@ struct ChatThreadView: View {
         }
 
         let content = message.content.lowercased()
-        if content.hasPrefix("http") && [".jpg", ".jpeg", ".png", ".webp", ".gif"].contains(where: { content.contains($0) }) {
-            return "image"
-        }
-        if content.hasPrefix("http") && [".mp4", ".webm", ".mov"].contains(where: { content.contains($0) }) {
-            return "video"
+        if content.hasPrefix("http") {
+            if [".jpg", ".jpeg", ".png", ".webp", ".gif"].contains(where: { content.contains($0) }) {
+                return "image"
+            }
+            if [".mp4", ".mov"].contains(where: { content.contains($0) }) {
+                return "video"
+            }
+            if [".webm", ".m4a", ".mp3", ".ogg"].contains(where: { content.contains($0) }) {
+                return content.contains("/uploads/chat/") ? "audio" : "video"
+            }
         }
         return message.messageType ?? "text"
     }
@@ -195,13 +263,13 @@ struct ChatThreadView: View {
 
 struct TehefChatComposer: View {
     @Binding var text: String
+    @Binding var attachmentItem: PhotosPickerItem?
     let isSending: Bool
     let onSend: () -> Void
 
-  var body: some View {
+    var body: some View {
         HStack(alignment: .bottom, spacing: 10) {
-            Button {
-            } label: {
+            PhotosPicker(selection: $attachmentItem, matching: .images) {
                 Image(systemName: "paperclip")
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(TehefTheme.foreground)
@@ -213,8 +281,7 @@ struct TehefChatComposer: View {
                     }
             }
             .buttonStyle(.plain)
-            .disabled(true)
-            .opacity(0.55)
+            .disabled(isSending)
 
             TextField("Message", text: $text, axis: .vertical)
                 .lineLimit(1...5)

@@ -81,29 +81,37 @@ struct ChatListView: View {
                                 NavigationLink {
                                     ChatThreadView(conversation: conversation)
                                 } label: {
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        HStack {
-                                            Text(conversation.otherUserName)
-                                                .font(.headline)
-                                                .foregroundStyle(TehefTheme.foreground)
-                                            Spacer()
-                                            if conversation.unreadCount > 0 {
-                                                Text("\(conversation.unreadCount)")
-                                                    .font(.caption2.weight(.bold))
-                                                    .padding(.horizontal, 8)
-                                                    .padding(.vertical, 4)
-                                                    .background(TehefTheme.primary, in: Capsule())
-                                                    .foregroundStyle(.white)
+                                    HStack(spacing: 12) {
+                                        TehefAvatarView(
+                                            urlString: conversation.otherUserAvatar,
+                                            name: conversation.otherUserName,
+                                            size: 48
+                                        )
+
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            HStack {
+                                                Text(conversation.otherUserName)
+                                                    .font(.headline)
+                                                    .foregroundStyle(TehefTheme.foreground)
+                                                Spacer()
+                                                if conversation.unreadCount > 0 {
+                                                    Text("\(conversation.unreadCount)")
+                                                        .font(.caption2.weight(.bold))
+                                                        .padding(.horizontal, 8)
+                                                        .padding(.vertical, 4)
+                                                        .background(TehefTheme.primary, in: Capsule())
+                                                        .foregroundStyle(.white)
+                                                }
                                             }
-                                        }
-                                        Text(conversation.taskTitle)
-                                            .font(.subheadline)
-                                            .foregroundStyle(TehefTheme.mutedForeground)
-                                        if let preview = conversation.lastMessageContent {
-                                            Text(preview)
-                                                .font(.footnote)
+                                            Text(conversation.taskTitle)
+                                                .font(.subheadline)
                                                 .foregroundStyle(TehefTheme.mutedForeground)
-                                                .lineLimit(1)
+                                            if let preview = conversation.lastMessageContent {
+                                                Text(preview)
+                                                    .font(.footnote)
+                                                    .foregroundStyle(TehefTheme.mutedForeground)
+                                                    .lineLimit(1)
+                                            }
                                         }
                                     }
                                 }

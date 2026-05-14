@@ -83,9 +83,11 @@ struct TaskDetailView: View {
                                     PublicProfileView(userID: client.id)
                                 } label: {
                                     HStack(spacing: 12) {
-                                        Image(systemName: "person.crop.circle.fill")
-                                            .font(.system(size: 36))
-                                            .foregroundStyle(TehefTheme.primary)
+                                        TehefAvatarView(
+                                            urlString: client.avatarUrl,
+                                            name: "\(client.firstName) \(client.lastName)",
+                                            size: 48
+                                        )
                                         VStack(alignment: .leading) {
                                             Text("\(client.firstName) \(client.lastName)")
                                                 .font(.headline)
@@ -114,10 +116,12 @@ struct TaskDetailView: View {
                     }
                 }
                 .padding(20)
+                .padding(.bottom, 24)
             }
         }
         .navigationTitle("Task")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .task {
             if viewModel == nil {
                 viewModel = TaskDetailViewModel(apiClient: appModel.apiClient, task: task)
@@ -135,16 +139,19 @@ struct TaskDetailView: View {
             EmptyView()
         } else if task.images.count == 1 {
             TehefRemoteImage(urlString: task.images[0], cornerRadius: TehefTheme.radiusLarge)
+                .frame(maxWidth: .infinity)
                 .frame(height: 260)
         } else {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(task.images, id: \.self) { imageURL in
-                        TehefRemoteImage(urlString: imageURL, cornerRadius: TehefTheme.radiusMedium)
-                            .frame(width: 260, height: 220)
-                    }
+            TabView {
+                ForEach(task.images, id: \.self) { imageURL in
+                    TehefRemoteImage(urlString: imageURL, cornerRadius: TehefTheme.radiusLarge)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 260)
+                        .padding(.horizontal, 2)
                 }
             }
+            .frame(height: 268)
+            .tabViewStyle(.page(indexDisplayMode: .automatic))
         }
     }
 

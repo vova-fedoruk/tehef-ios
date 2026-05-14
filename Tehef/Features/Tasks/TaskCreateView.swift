@@ -56,6 +56,7 @@ struct TaskCreateView: View {
     @State private var address = ""
     @State private var requirementInput = ""
     @State private var requirements: [String] = []
+    @State private var imageURLs: [String] = []
     @State private var errorMessage: String?
 
     var body: some View {
@@ -88,6 +89,13 @@ struct TaskCreateView: View {
                                 .keyboardType(.decimalPad)
                             TehefTextField(title: "City", text: $city)
                             TehefTextField(title: "Address", text: $address)
+
+                            TehefPhotoAttachmentsSection(
+                                apiClient: appModel.apiClient,
+                                uploadType: "task",
+                                imageURLs: $imageURLs,
+                                maxCount: 5
+                            )
 
                             VStack(alignment: .leading, spacing: 8) {
                                 TehefTextField(title: "Add requirement", text: $requirementInput)
@@ -151,7 +159,7 @@ struct TaskCreateView: View {
             deadline: nil,
             location: TaskLocation(city: city.isEmpty ? nil : city, address: address.isEmpty ? nil : address),
             requirements: requirements,
-            images: []
+            images: imageURLs
         )
 
         do {
