@@ -26,40 +26,79 @@ struct TehefVideoMessageView: View {
 @Observable
 final class TehefVoiceMessagePlayerModel {
     private var player: AVPlayer?
+    private var playerItem: AVPlayerItem?
     private var timeObserver: Any?
     private var endObserver: NSObjectProtocol?
+    private var statusObserver: NSKeyValueObservation?
 
     let urlString: String
     var isPlaying = false
+    var isPreparing = false
     var isReady = false
     var duration: TimeInterval = 0
     var currentTime: TimeInterval = 0
     var fileSizeLabel = ""
     var playbackRate: Float = 1
     var waveform: [CGFloat] = []
+    var errorMessage: String?
 
     init(urlString: String) {
         self.urlString = urlString
-        waveform = Self.makeWaveform(seed: urlString, count: 42)
+        waveform = Self.makeWaveform(seed: urlString, count: 28)
     }
 
     func prepare() async {
-        guard let url = TehefMediaURL.resolve(urlString) else { return }
+        guard player == nil else { return }
+        guard let url = TehefMediaURL.resolve(urlString) else {
+            errorMessage = "Voice message is unavailable."
+            return
+        }
+
+        isPreparing = true
+        errorMessage = nil
+        defer { isPreparing = false }
 
         let asset = AVURLAsset(url: url)
-        if let duration = try? await asset.load(.duration) {
-            self.duration = max(duration.seconds, 0)
-            isReady = duration.seconds.isFinite && duration.seconds > 0
+        let playable = (try? await asset.load(.isPlayable)) ?? false
+        if !playable {
+            errorMessage = "This voice message format is not supported on iOS."
+            return
+        }
+
+        if let loadedDuration = try? await asset.load(.duration) {
+            duration = max(loadedDuration.seconds, 0)
+            isReady = loadedDuration.seconds.isFinite && loadedDuration.seconds > 0
         }
 
         await loadFileSize(for: url)
 
         let item = AVPlayerItem(asset: asset)
         let player = AVPlayer(playerItem: item)
+        player.automaticallyWaitsToMinimizeStalling = false
+        player.volume = 1
+        self.playerItem = item
         self.player = player
 
+        statusObserver = item.observe(\.status, options: [.initial, .new]) { [weak self] item, _ in
+            guard let self else { return }
+            Task { @MainActor in
+                switch item.status {
+                case .readyToPlay:
+                    self.isReady = true
+                    if self.duration <= 0, item.duration.seconds.isFinite, item.duration.seconds > 0 {
+                        self.duration = item.duration.seconds
+                    }
+                case .failed:
+                    self.errorMessage = item.error?.localizedDescription ?? "Could not load voice message."
+                    self.isReady = false
+                default:
+                    break
+                }
+            }
+        }
+
         timeObserver = player.addPeriodicTimeObserver(
-            forInterval: CMTime(seconds: 0.05, preferredTimescale: 600),
+            forInterval: CMTime(seconds: 0.1, preferredTimescale: 600),
             queue: .main
         ) { [weak self] time in
             guard let self else { return }
@@ -80,18 +119,48 @@ final class TehefVoiceMessagePlayerModel {
                 self.player?.seek(to: .zero)
             }
         }
+
+        await waitUntilReady(timeout: 8)
     }
 
-    func togglePlayback() {
+    func togglePlayback() async {
+        if player == nil {
+            await prepare()
+            guard player != nil else { return }
+        }
+
         guard let player else { return }
+
         if isPlaying {
             player.pause()
             isPlaying = false
-        } else {
-            TehefVoiceMessagePlayerModel.stopOthers(except: self)
-            player.playImmediately(atRate: playbackRate)
-            isPlaying = true
+            return
         }
+
+        Self.stopOthers(except: self)
+        activatePlaybackSession()
+
+        if !isReady {
+            await waitUntilReady(timeout: 4)
+        }
+
+        guard isReady else {
+            errorMessage = errorMessage ?? "Voice message is still loading."
+            return
+        }
+
+        if duration <= 0, let itemDuration = player.currentItem?.duration.seconds, itemDuration.isFinite, itemDuration > 0 {
+            duration = itemDuration
+        }
+
+        player.play()
+        player.rate = playbackRate
+        isPlaying = player.rate > 0
+    }
+
+    func pause() {
+        player?.pause()
+        isPlaying = false
     }
 
     func cycleSpeed() {
@@ -100,7 +169,9 @@ final class TehefVoiceMessagePlayerModel {
         case 1.5: playbackRate = 2
         default: playbackRate = 1
         }
-        player?.rate = isPlaying ? playbackRate : 0
+        if isPlaying {
+            player?.rate = playbackRate
+        }
     }
 
     func seek(to progress: CGFloat) {
@@ -111,23 +182,50 @@ final class TehefVoiceMessagePlayerModel {
     }
 
     func cleanup() {
+        pause()
         if let timeObserver, let player {
             player.removeTimeObserver(timeObserver)
         }
         if let endObserver {
             NotificationCenter.default.removeObserver(endObserver)
         }
-        player?.pause()
+        statusObserver?.invalidate()
         player = nil
-        TehefVoiceMessagePlayerModel.activePlayer = nil
+        playerItem = nil
+        if Self.activePlayer === self {
+            Self.activePlayer = nil
+        }
+    }
+
+    private func waitUntilReady(timeout: TimeInterval) async {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if isReady || errorMessage != nil {
+                return
+            }
+            if playerItem?.status == .failed {
+                errorMessage = playerItem?.error?.localizedDescription ?? "Could not load voice message."
+                return
+            }
+            try? await Task.sleep(for: .milliseconds(120))
+        }
+    }
+
+    private func activatePlaybackSession() {
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try session.setActive(true)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     private static weak var activePlayer: TehefVoiceMessagePlayerModel?
 
     private static func stopOthers(except current: TehefVoiceMessagePlayerModel) {
         if let activePlayer, activePlayer !== current {
-            activePlayer.player?.pause()
-            activePlayer.isPlaying = false
+            activePlayer.pause()
         }
         activePlayer = current
     }
@@ -157,12 +255,13 @@ final class TehefVoiceMessagePlayerModel {
         return (0..<count).map { index in
             hash = (hash &* 33) &+ index
             let value = abs(hash % 100)
-            return CGFloat(0.18 + Double(value) / 100 * 0.82)
+            return CGFloat(0.22 + Double(value) / 100 * 0.72)
         }
     }
 }
 
 struct TehefAudioMessageView: View {
+    let messageID: Int
     let urlString: String
     let isMine: Bool
 
@@ -176,15 +275,13 @@ struct TehefAudioMessageView: View {
                 TehefVoiceMessageBubblePlaceholder(isMine: isMine)
             }
         }
-        .task {
-            if model == nil {
-                let playerModel = TehefVoiceMessagePlayerModel(urlString: urlString)
-                model = playerModel
-                await playerModel.prepare()
-            }
+        .task(id: messageID) {
+            let playerModel = TehefVoiceMessagePlayerModel(urlString: urlString)
+            model = playerModel
+            await playerModel.prepare()
         }
         .onDisappear {
-            model?.cleanup()
+            model?.pause()
         }
     }
 }
@@ -196,19 +293,19 @@ private struct TehefVoiceMessageBubblePlaceholder: View {
         HStack(spacing: 10) {
             Circle()
                 .fill(isMine ? Color.white.opacity(0.25) : TehefTheme.accent.opacity(0.15))
-                .frame(width: 44, height: 44)
+                .frame(width: 42, height: 42)
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(isMine ? Color.white.opacity(0.18) : TehefTheme.muted)
-                .frame(height: 32)
+                .frame(height: 28)
         }
-        .frame(minWidth: 220, maxWidth: 300)
+        .frame(minWidth: 220, maxWidth: 280)
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .background(bubbleColor, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
     private var bubbleColor: Color {
-        isMine ? TehefTheme.accent : Color(red: 0.91, green: 0.95, blue: 0.98)
+        isMine ? TehefTheme.accent.opacity(0.92) : Color(red: 0.93, green: 0.96, blue: 0.98)
     }
 }
 
@@ -216,20 +313,22 @@ private struct TehefVoiceMessageBubble: View {
     @Bindable var model: TehefVoiceMessagePlayerModel
     let isMine: Bool
 
-  var body: some View {
+    var body: some View {
         HStack(alignment: .center, spacing: 10) {
-            Button(action: model.togglePlayback) {
+            Button {
+                Task { await model.togglePlayback() }
+            } label: {
                 Image(systemName: model.isPlaying ? "pause.fill" : "play.fill")
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(isMine ? TehefTheme.accent : .white)
-                    .frame(width: 44, height: 44)
+                    .frame(width: 42, height: 42)
                     .background(
                         isMine ? Color.white : TehefTheme.accent,
                         in: Circle()
                     )
-                    .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
             }
             .buttonStyle(.plain)
+            .disabled(model.isPreparing)
 
             VStack(alignment: .leading, spacing: 6) {
                 TehefVoiceWaveform(
@@ -238,34 +337,48 @@ private struct TehefVoiceMessageBubble: View {
                     isMine: isMine,
                     onSeek: model.seek(to:)
                 )
-                .frame(height: 32)
+                .frame(height: 28)
 
-                Text(metadataLabel)
-                    .font(.caption)
-                    .monospacedDigit()
-                    .foregroundStyle(isMine ? Color.white.opacity(0.82) : TehefTheme.mutedForeground)
-            }
+                HStack(spacing: 8) {
+                    Text(metadataLabel)
+                        .font(.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(isMine ? Color.white.opacity(0.86) : TehefTheme.mutedForeground)
+                        .lineLimit(1)
 
-            Button(action: model.cycleSpeed) {
-                Text(speedLabel)
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(isMine ? .white : TehefTheme.accent)
-                    .frame(minWidth: 36, minHeight: 36)
-                    .background(
-                        isMine ? Color.white.opacity(0.22) : TehefTheme.accent.opacity(0.12),
-                        in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    )
+                    Spacer(minLength: 0)
+
+                    Button(action: model.cycleSpeed) {
+                        Text(speedLabel)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(isMine ? .white : TehefTheme.accent)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                isMine ? Color.white.opacity(0.18) : TehefTheme.accent.opacity(0.12),
+                                in: Capsule()
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(minWidth: 220, maxWidth: 300)
+        .frame(minWidth: 220, maxWidth: 280)
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .background(bubbleColor, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+        if let errorMessage = model.errorMessage {
+            Text(errorMessage)
+                .font(.caption2)
+                .foregroundStyle(TehefTheme.destructive)
+                .padding(.top, 4)
+        }
     }
 
     private var bubbleColor: Color {
-        isMine ? TehefTheme.accent : Color(red: 0.91, green: 0.95, blue: 0.98)
+        isMine ? TehefTheme.accent.opacity(0.92) : Color(red: 0.93, green: 0.96, blue: 0.98)
     }
 
     private var progress: CGFloat {
@@ -274,6 +387,9 @@ private struct TehefVoiceMessageBubble: View {
     }
 
     private var metadataLabel: String {
+        if model.isPreparing {
+            return "Loading..."
+        }
         let duration = formattedDuration(model.duration > 0 ? model.duration : model.currentTime)
         if model.fileSizeLabel.isEmpty {
             return duration
@@ -319,12 +435,15 @@ private struct TehefVoiceWaveform: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             .contentShape(Rectangle())
             .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { value in
+                DragGesture(minimumDistance: 12)
+                    .onEnded { value in
                         let fraction = min(max(value.location.x / max(geometry.size.width, 1), 0), 1)
                         onSeek(fraction)
                     }
             )
+            .onTapGesture {
+                onSeek(progress)
+            }
         }
     }
 

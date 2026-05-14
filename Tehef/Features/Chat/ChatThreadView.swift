@@ -264,7 +264,7 @@ struct ChatThreadView: View {
         case "video":
             TehefVideoMessageView(urlString: message.content)
         case "audio":
-            TehefAudioMessageView(urlString: message.content, isMine: isMine)
+            TehefAudioMessageView(messageID: message.id, urlString: message.content, isMine: isMine)
         case "file":
             Link(destination: TehefMediaURL.resolve(message.content) ?? URL(string: "https://tehef.io")!) {
                 Label("Attachment", systemImage: "paperclip")
