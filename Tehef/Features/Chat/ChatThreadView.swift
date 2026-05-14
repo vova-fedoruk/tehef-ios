@@ -84,6 +84,7 @@ struct ChatThreadView: View {
     @State private var viewModel: ChatThreadViewModel?
     @State private var draft = ""
     @State private var attachmentItem: PhotosPickerItem?
+    @State private var lightboxRoute: TehefImageLightboxRoute?
 
     var body: some View {
         ZStack {
@@ -162,6 +163,13 @@ struct ChatThreadView: View {
                 }
             }
         }
+        .fullScreenCover(item: $lightboxRoute) { route in
+            TehefImageLightbox(
+                images: route.images,
+                startIndex: route.startIndex,
+                onDismiss: { lightboxRoute = nil }
+            )
+        }
     }
 
     @ViewBuilder
@@ -201,12 +209,17 @@ struct ChatThreadView: View {
     private func messageContent(_ message: ChatMessage, isMine: Bool) -> some View {
         switch resolvedMessageType(for: message) {
         case "image":
-            TehefRemoteImage(
-                urlString: message.content,
-                cornerRadius: 16,
-                showsBorder: false
-            )
-            .frame(maxWidth: 240, maxHeight: 240)
+            Button {
+                lightboxRoute = TehefImageLightboxRoute(images: [message.content], startIndex: 0)
+            } label: {
+                TehefRemoteImage(
+                    urlString: message.content,
+                    cornerRadius: 16,
+                    showsBorder: false
+                )
+                .frame(maxWidth: 240, maxHeight: 240)
+            }
+            .buttonStyle(.plain)
         case "video":
             TehefVideoMessageView(urlString: message.content)
         case "audio":

@@ -35,9 +35,7 @@ struct TehefRemoteImage: View {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
+                        remoteImage(image)
                     case .failure:
                         placeholder
                     default:
@@ -57,6 +55,24 @@ struct TehefRemoteImage: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    }
+
+    @ViewBuilder
+    private func remoteImage(_ image: Image) -> some View {
+        switch contentMode {
+        case .fit:
+            image
+                .resizable()
+                .scaledToFit()
+        case .fill:
+            image
+                .resizable()
+                .scaledToFill()
+        @unknown default:
+            image
+                .resizable()
+                .scaledToFill()
+        }
     }
 
     private var placeholder: some View {

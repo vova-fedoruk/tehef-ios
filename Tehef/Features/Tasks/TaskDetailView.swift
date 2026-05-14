@@ -53,6 +53,7 @@ struct TaskDetailView: View {
     @Environment(AppModel.self) private var appModel
     let task: TaskItem
     @State private var viewModel: TaskDetailViewModel?
+    @State private var lightboxRoute: TehefImageLightboxRoute?
 
     var body: some View {
         ZStack {
@@ -131,27 +132,19 @@ struct TaskDetailView: View {
         .navigationDestination(for: TaskApplyRoute.self) { route in
             TaskApplyView(task: route.task)
         }
+        .fullScreenCover(item: $lightboxRoute) { route in
+            TehefImageLightbox(
+                images: route.images,
+                startIndex: route.startIndex,
+                onDismiss: { lightboxRoute = nil }
+            )
+        }
     }
 
     @ViewBuilder
     private func imageGallery(for task: TaskItem) -> some View {
-        if task.images.isEmpty {
-            EmptyView()
-        } else if task.images.count == 1 {
-            TehefRemoteImage(urlString: task.images[0], cornerRadius: TehefTheme.radiusLarge)
-                .frame(maxWidth: .infinity)
-                .frame(height: 260)
-        } else {
-            TabView {
-                ForEach(task.images, id: \.self) { imageURL in
-                    TehefRemoteImage(urlString: imageURL, cornerRadius: TehefTheme.radiusLarge)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 260)
-                        .padding(.horizontal, 2)
-                }
-            }
-            .frame(height: 268)
-            .tabViewStyle(.page(indexDisplayMode: .automatic))
+        TehefTaskImageGallery(images: task.images) { index in
+            lightboxRoute = TehefImageLightboxRoute(images: task.images, startIndex: index)
         }
     }
 
