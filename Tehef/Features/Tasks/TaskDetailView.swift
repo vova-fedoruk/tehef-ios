@@ -35,17 +35,34 @@ final class TaskDetailViewModel {
         guard let task else { return }
         let liked = task.isLiked == true
         do {
-            try await apiClient.sendVoid(
-                APIRequest(
-                    path: "api/tasks/\(taskID)/like",
-                    method: liked ? .delete : .post,
-                    requiresAuth: true
-                )
+            try await apiClient.toggleTaskLike(taskID: taskID, isLiked: liked)
+            let currentLikes = task.likesCount ?? 0
+            let nextLiked = !liked
+            self.task = task.withLike(
+                isLiked: nextLiked,
+                likesCount: max(0, currentLikes + (nextLiked ? 1 : -1))
             )
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func updateStatus(_ status: String) async {
+        do {
+            try await apiClient.updateTaskStatus(taskID: taskID, status: status)
             await load()
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    func submitReview(rating: Int, comment: String) async throws {
+        try await apiClient.submitTaskReview(taskID: taskID, rating: rating, comment: comment)
+        await load()
+    }
+
+    func loadReviews() async -> [TaskReview] {
+        (try? await apiClient.fetchTaskReviews(taskID: taskID)) ?? []
     }
 }
 
@@ -55,6 +72,10 @@ struct TaskDetailView: View {
     @State private var viewModel: TaskDetailViewModel?
     @State private var lightboxRoute: TehefImageLightboxRoute?
     @State private var isStartingChat = false
+    @State private var reviews: [TaskReview] = []
+    @State private var reviewRating = 5
+    @State private var reviewComment = ""
+    @State private var isSubmittingReview = false
 
     var body: some View {
         ZStack {
@@ -106,6 +127,8 @@ struct TaskDetailView: View {
                             }
                         }
 
+                        workflowSection(for: currentTask)
+                        reviewSection(for: currentTask)
                         actionButtons(for: currentTask)
                     } else if viewModel?.isLoading == true {
                         ProgressView().tint(TehefTheme.primary)
@@ -129,6 +152,9 @@ struct TaskDetailView: View {
                 viewModel = TaskDetailViewModel(apiClient: appModel.apiClient, task: task)
             }
             await viewModel?.load()
+            if let viewModel, viewModel.task?.status == "completed" {
+                reviews = await viewModel.loadReviews()
+            }
         }
         .navigationDestination(for: TaskApplyRoute.self) { route in
             TaskApplyView(task: route.task)
@@ -190,6 +216,92 @@ struct TaskDetailView: View {
     }
 
     @ViewBuilder
+    private func workflowSection(for task: TaskItem) -> some View {
+        if !appModel.isAuthenticated {
+            EmptyView()
+        } else if isAssignedProvider(task), task.status == "assigned" {
+            Button("Start work") {
+                Task { await viewModel?.updateStatus("in_progress") }
+            }
+            .buttonStyle(GlassPrimaryButtonStyle())
+        } else if isAssignedProvider(task), task.status == "in_progress" {
+            Button("Request completion") {
+                Task { await viewModel?.updateStatus("pending_completion") }
+            }
+            .buttonStyle(GlassPrimaryButtonStyle())
+        } else if isTaskOwner(task), task.status == "pending_completion" {
+            Button("Confirm completion") {
+                Task { await viewModel?.updateStatus("completed") }
+            }
+            .buttonStyle(GlassPrimaryButtonStyle())
+        }
+    }
+
+    @ViewBuilder
+    private func reviewSection(for task: TaskItem) -> some View {
+        if task.status == "completed" {
+            GlassSection(title: "Reviews", icon: "star.fill") {
+                VStack(alignment: .leading, spacing: 12) {
+                    if reviews.isEmpty {
+                        Text("No reviews yet")
+                            .foregroundStyle(TehefTheme.mutedForeground)
+                    } else {
+                        ForEach(reviews) { review in
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text(review.reviewerName.isEmpty ? "User" : review.reviewerName)
+                                        .font(.subheadline.weight(.semibold))
+                                    Spacer()
+                                    Text("\(review.rating)/5")
+                                        .font(.caption.weight(.bold))
+                                        .foregroundStyle(TehefTheme.accent)
+                                }
+                                if let comment = review.comment, !comment.isEmpty {
+                                    Text(comment)
+                                        .font(.footnote)
+                                        .foregroundStyle(TehefTheme.mutedForeground)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+
+                    if appModel.isAuthenticated, canLeaveReview(for: task) {
+                        Divider()
+                        Picker("Rating", selection: $reviewRating) {
+                            ForEach(1...5, id: \.self) { value in
+                                Text("\(value) stars").tag(value)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+
+                        TehefTextField(title: "Comment (optional)", text: $reviewComment, axis: .vertical)
+
+                        Button(isSubmittingReview ? "Submitting..." : "Leave review") {
+                            Task {
+                                isSubmittingReview = true
+                                defer { isSubmittingReview = false }
+                                do {
+                                    try await viewModel?.submitReview(
+                                        rating: reviewRating,
+                                        comment: reviewComment.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    )
+                                    reviews = await viewModel?.loadReviews() ?? []
+                                    reviewComment = ""
+                                } catch {
+                                    viewModel?.errorMessage = error.localizedDescription
+                                }
+                            }
+                        }
+                        .buttonStyle(GlassSecondaryButtonStyle())
+                        .disabled(isSubmittingReview)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
     private func actionButtons(for task: TaskItem) -> some View {
         VStack(spacing: 12) {
             if appModel.isAuthenticated {
@@ -243,6 +355,18 @@ struct TaskDetailView: View {
             return false
         }
         return userID == clientID
+    }
+
+    private func isAssignedProvider(_ task: TaskItem) -> Bool {
+        guard let userID = appModel.sessionStore.user?.id,
+              let providerID = task.assignedProviderId else {
+            return false
+        }
+        return userID == providerID
+    }
+
+    private func canLeaveReview(for task: TaskItem) -> Bool {
+        isTaskOwner(task) || isAssignedProvider(task)
     }
 
     private func startChat(for task: TaskItem) async {

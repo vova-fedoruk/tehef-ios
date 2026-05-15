@@ -57,4 +57,37 @@ extension APIClient {
         )
         TehefCacheStore.invalidateAfterMutation(path: "api/tasks/\(taskID)/applications")
     }
+
+    func updateTaskStatus(taskID: Int, status: String) async throws {
+        try await sendVoid(
+            APIRequest(
+                path: "api/tasks/\(taskID)/status",
+                method: .patch,
+                body: UpdateTaskStatusRequest(status: status),
+                requiresAuth: true,
+                cachePolicy: .networkOnly
+            )
+        )
+        TehefCacheStore.invalidateAfterMutation(path: "api/tasks/\(taskID)/status")
+    }
+
+    func submitTaskReview(taskID: Int, rating: Int, comment: String) async throws {
+        try await sendVoid(
+            APIRequest(
+                path: "api/tasks/\(taskID)/review",
+                method: .post,
+                body: SubmitTaskReviewRequest(rating: rating, comment: comment),
+                requiresAuth: true,
+                cachePolicy: .networkOnly
+            )
+        )
+        TehefCacheStore.invalidateAfterMutation(path: "api/tasks/\(taskID)/review")
+    }
+
+    func fetchTaskReviews(taskID: Int) async throws -> [TaskReview] {
+        try await send(
+            APIRequest(path: "api/tasks/\(taskID)/review"),
+            responseType: [TaskReview].self
+        )
+    }
 }

@@ -96,10 +96,7 @@ struct TaskHubView: View {
                     } else {
                         ScrollView {
                             TaskGridRows(items: viewModel.tasks, spacing: 16) { task in
-                                NavigationLink(value: task) {
-                                    TaskCardView(task: task)
-                                }
-                                .buttonStyle(.plain)
+                                TaskCardLink(task: task)
                             }
                             .padding(.horizontal, 20)
                             .padding(.bottom, 96)

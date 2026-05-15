@@ -169,6 +169,8 @@ struct TaskItem: Codable, Identifiable, Hashable {
     let viewCount: Int?
     let hasApplied: Bool?
     let isLiked: Bool?
+    let assignedProviderId: Int?
+    let assignedProvider: TaskClientSummary?
     let client: TaskClientSummary?
     let category: TaskCategorySummary?
 
@@ -189,6 +191,8 @@ struct TaskItem: Codable, Identifiable, Hashable {
         case viewCount
         case hasApplied
         case isLiked
+        case assignedProviderId
+        case assignedProvider
         case client
         case category
     }
@@ -210,8 +214,10 @@ struct TaskItem: Codable, Identifiable, Hashable {
         viewCount: Int?,
         hasApplied: Bool?,
         isLiked: Bool?,
-        client: TaskClientSummary?,
-        category: TaskCategorySummary?
+        assignedProviderId: Int? = nil,
+        assignedProvider: TaskClientSummary? = nil,
+        client: TaskClientSummary? = nil,
+        category: TaskCategorySummary? = nil
     ) {
         self.id = id
         self.title = title
@@ -229,6 +235,8 @@ struct TaskItem: Codable, Identifiable, Hashable {
         self.viewCount = viewCount
         self.hasApplied = hasApplied
         self.isLiked = isLiked
+        self.assignedProviderId = assignedProviderId
+        self.assignedProvider = assignedProvider
         self.client = client
         self.category = category
     }
@@ -251,8 +259,35 @@ struct TaskItem: Codable, Identifiable, Hashable {
         viewCount = try container.decodeIfPresent(Int.self, forKey: .viewCount)
         hasApplied = try container.decodeIfPresent(Bool.self, forKey: .hasApplied)
         isLiked = try container.decodeIfPresent(Bool.self, forKey: .isLiked)
+        assignedProviderId = try container.decodeIfPresent(Int.self, forKey: .assignedProviderId)
+        assignedProvider = try container.decodeIfPresent(TaskClientSummary.self, forKey: .assignedProvider)
         client = try container.decodeIfPresent(TaskClientSummary.self, forKey: .client)
         category = try container.decodeIfPresent(TaskCategorySummary.self, forKey: .category)
+    }
+
+    func withLike(isLiked: Bool, likesCount: Int) -> TaskItem {
+        TaskItem(
+            id: id,
+            title: title,
+            description: description,
+            budgetMin: budgetMin,
+            budgetMax: budgetMax,
+            location: location,
+            status: status,
+            images: images,
+            requirements: requirements,
+            createdAt: createdAt,
+            deadline: deadline,
+            applicationsCount: applicationsCount,
+            likesCount: likesCount,
+            viewCount: viewCount,
+            hasApplied: hasApplied,
+            isLiked: isLiked,
+            assignedProviderId: assignedProviderId,
+            assignedProvider: assignedProvider,
+            client: client,
+            category: category
+        )
     }
 
     var budgetLabel: String {
@@ -470,4 +505,27 @@ struct UpdateTaskRequest: Encodable {
 struct ChangePasswordRequest: Encodable {
     let currentPassword: String
     let newPassword: String
+}
+
+struct UpdateTaskStatusRequest: Encodable {
+    let status: String
+}
+
+struct SubmitTaskReviewRequest: Encodable {
+    let rating: Int
+    let comment: String
+}
+
+struct TaskReview: Codable, Identifiable, Hashable {
+    let id: Int
+    let rating: Int
+    let comment: String?
+    let createdAt: String?
+    let firstName: String?
+    let lastName: String?
+    let avatarUrl: String?
+
+    var reviewerName: String {
+        "\(firstName ?? "") \(lastName ?? "")".trimmingCharacters(in: .whitespaces)
+    }
 }

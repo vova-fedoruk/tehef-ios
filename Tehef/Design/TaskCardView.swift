@@ -142,3 +142,42 @@ struct TaskCardView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
+
+/// Keeps the like button outside `NavigationLink` so taps don't open the task by mistake.
+struct TaskCardLink: View {
+    @Environment(AppModel.self) private var appModel
+
+    let task: TaskItem
+    var onToggleLike: ((Int, Bool) -> Void)?
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            NavigationLink(value: task) {
+                TaskCardView(task: task, onToggleLike: nil)
+            }
+            .buttonStyle(.plain)
+
+            if onToggleLike != nil {
+                Button {
+                    if appModel.isAuthenticated {
+                        onToggleLike?(task.id, task.isLiked == true)
+                    } else {
+                        appModel.openAuth()
+                    }
+                } label: {
+                    Image(systemName: task.isLiked == true ? "heart.fill" : "heart")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(task.isLiked == true ? TehefTheme.primary : TehefTheme.foreground)
+                        .frame(width: 34, height: 34)
+                        .background(.white.opacity(0.92), in: Circle())
+                        .overlay {
+                            Circle()
+                                .stroke(TehefTheme.border.opacity(0.65), lineWidth: 1)
+                        }
+                }
+                .buttonStyle(.borderless)
+                .padding(8)
+            }
+        }
+    }
+}

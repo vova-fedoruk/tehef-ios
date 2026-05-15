@@ -129,8 +129,7 @@ final class TaskBrowseViewModel {
                 guard task.id == taskID else { return task }
                 let currentLikes = task.likesCount ?? 0
                 let nextLiked = !liked
-                return mirroredTask(
-                    task,
+                return task.withLike(
                     isLiked: nextLiked,
                     likesCount: max(0, currentLikes + (nextLiked ? 1 : -1))
                 )
@@ -140,28 +139,6 @@ final class TaskBrowseViewModel {
         }
     }
 
-    private func mirroredTask(_ task: TaskItem, isLiked: Bool, likesCount: Int) -> TaskItem {
-        TaskItem(
-            id: task.id,
-            title: task.title,
-            description: task.description,
-            budgetMin: task.budgetMin,
-            budgetMax: task.budgetMax,
-            location: task.location,
-            status: task.status,
-            images: task.images,
-            requirements: task.requirements,
-            createdAt: task.createdAt,
-            deadline: task.deadline,
-            applicationsCount: task.applicationsCount,
-            likesCount: likesCount,
-            viewCount: task.viewCount,
-            hasApplied: task.hasApplied,
-            isLiked: isLiked,
-            client: task.client,
-            category: task.category
-        )
-    }
 }
 
 struct TaskBrowseView: View {
@@ -398,19 +375,9 @@ struct TaskBrowseView: View {
                 .padding(.horizontal, 16)
 
                 TaskGridRows(items: viewModel.tasks, spacing: 12) { task in
-                    NavigationLink(value: task) {
-                        TaskCardView(
-                            task: task,
-                            onToggleLike: { taskID, liked in
-                                if appModel.isAuthenticated {
-                                    Task { await viewModel.toggleLike(taskID: taskID, liked: liked) }
-                                } else {
-                                    appModel.openAuth()
-                                }
-                            }
-                        )
+                    TaskCardLink(task: task) { taskID, liked in
+                        Task { await viewModel.toggleLike(taskID: taskID, liked: liked) }
                     }
-                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 16)
             }
