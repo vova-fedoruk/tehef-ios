@@ -37,6 +37,7 @@ struct MainTabView: View {
                 }
                 .tag(4)
         }
-        .tint(TehefTheme.primary)
+        .tint(TehefTheme.accent)
+        .tabBarMinimizeBehavior(.onScrollDown)
     }
 }

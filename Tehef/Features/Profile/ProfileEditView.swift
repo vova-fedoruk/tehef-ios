@@ -50,6 +50,8 @@ struct ProfileEditView: View {
     @State private var city = ""
     @State private var address = ""
     @State private var avatarURL = ""
+    @State private var skillInput = ""
+    @State private var skills: [String] = []
     @State private var avatarPickerItem: PhotosPickerItem?
     @State private var isUploadingAvatar = false
 
@@ -94,6 +96,36 @@ struct ProfileEditView: View {
                             TehefTextField(title: "Bio", text: $bio, axis: .vertical)
                             TehefTextField(title: "City", text: $city)
                             TehefTextField(title: "Address", text: $address)
+
+                            VStack(alignment: .leading, spacing: 8) {
+                                TehefTextField(title: "Add skill", text: $skillInput)
+                                Button("Add skill") {
+                                    let trimmed = skillInput.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    guard !trimmed.isEmpty else { return }
+                                    skills.append(trimmed)
+                                    skillInput = ""
+                                }
+                                .buttonStyle(GlassSecondaryButtonStyle())
+
+                                if !skills.isEmpty {
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        ForEach(skills, id: \.self) { skill in
+                                            HStack {
+                                                Text(skill)
+                                                    .font(.caption)
+                                                Spacer()
+                                                Button {
+                                                    skills.removeAll { $0 == skill }
+                                                } label: {
+                                                    Image(systemName: "xmark.circle.fill")
+                                                        .foregroundStyle(TehefTheme.mutedForeground)
+                                                }
+                                                .buttonStyle(.plain)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
 
                             if let errorMessage = viewModel?.errorMessage {
                                 Text(errorMessage)
@@ -173,7 +205,7 @@ struct ProfileEditView: View {
                 lastName: lastName,
                 phone: phone.isEmpty ? nil : phone,
                 bio: bio.isEmpty ? nil : bio,
-                skills: [],
+                skills: skills,
                 location: location,
                 avatarUrl: avatarURL.isEmpty ? nil : avatarURL,
                 preferredLanguage: appModel.sessionStore.user?.preferredLanguage

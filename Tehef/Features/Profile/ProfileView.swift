@@ -3,6 +3,7 @@ import SwiftUI
 private enum ProfileRoute: Hashable {
     case editProfile
     case createTask
+    case security
 }
 
 struct ProfileView: View {
@@ -90,6 +91,15 @@ struct ProfileView: View {
                                         )
                                     }
                                     .buttonStyle(.plain)
+
+                                    NavigationLink(value: ProfileRoute.security) {
+                                        TehefMenuRow(
+                                            title: "Security",
+                                            subtitle: "Change your password.",
+                                            systemImage: "lock.circle.fill"
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
                                 }
 
                                 Button("Sign out") {
@@ -132,6 +142,8 @@ struct ProfileView: View {
                     ProfileEditView()
                 case .createTask:
                     TaskCreateView()
+                case .security:
+                    ProfileSecurityView()
                 }
             }
         }

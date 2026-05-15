@@ -54,6 +54,7 @@ struct TaskDetailView: View {
     let task: TaskItem
     @State private var viewModel: TaskDetailViewModel?
     @State private var lightboxRoute: TehefImageLightboxRoute?
+    @State private var isStartingChat = false
 
     var body: some View {
         ZStack {
@@ -132,6 +133,12 @@ struct TaskDetailView: View {
         .navigationDestination(for: TaskApplyRoute.self) { route in
             TaskApplyView(task: route.task)
         }
+        .navigationDestination(for: TaskApplicationsRoute.self) { route in
+            TaskApplicationsView(task: route.task)
+        }
+        .navigationDestination(for: TaskEditRoute.self) { route in
+            TaskEditView(task: route.task)
+        }
         .fullScreenCover(item: $lightboxRoute) { route in
             TehefImageLightbox(
                 images: route.images,
@@ -143,9 +150,21 @@ struct TaskDetailView: View {
 
     @ViewBuilder
     private func imageGallery(for task: TaskItem) -> some View {
-        TehefTaskImageGallery(images: task.images) { index in
-            lightboxRoute = TehefImageLightboxRoute(images: task.images, startIndex: index)
-        }
+        TehefTaskImageGallery(
+            images: task.images,
+            isLiked: task.isLiked == true,
+            likesCount: task.likesCount,
+            onOpen: { index in
+                lightboxRoute = TehefImageLightboxRoute(images: task.images, startIndex: index)
+            },
+            onToggleLike: {
+                if appModel.isAuthenticated {
+                    Task { await viewModel?.toggleLike() }
+                } else {
+                    appModel.openAuth()
+                }
+            }
+        )
     }
 
     @ViewBuilder
@@ -154,11 +173,6 @@ struct TaskDetailView: View {
             HStack {
                 TaskStatusBadge(status: task.status)
                 Spacer()
-                if let likes = task.likesCount {
-                    Label("\(likes)", systemImage: "heart")
-                        .font(.caption)
-                        .foregroundStyle(TehefTheme.mutedForeground)
-                }
             }
             Text(task.title)
                 .font(.system(.title2, design: .rounded, weight: .bold))
@@ -179,12 +193,33 @@ struct TaskDetailView: View {
     private func actionButtons(for task: TaskItem) -> some View {
         VStack(spacing: 12) {
             if appModel.isAuthenticated {
-                Button(task.isLiked == true ? "Unlike task" : "Like task") {
-                    Task { await viewModel?.toggleLike() }
-                }
-                .buttonStyle(GlassSecondaryButtonStyle())
+                if isTaskOwner(task), task.status == "open" {
+                    NavigationLink(value: TaskApplicationsRoute(task: task)) {
+                        Text("View proposals")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                    }
+                    .buttonStyle(GlassSecondaryButtonStyle())
 
-                if task.hasApplied != true && task.status == "open" {
+                    NavigationLink(value: TaskEditRoute(task: task)) {
+                        Text("Edit task")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                    }
+                    .buttonStyle(GlassSecondaryButtonStyle())
+                }
+
+                if !isTaskOwner(task), task.status == "open" {
+                    Button(isStartingChat ? "Opening chat..." : "Contact client") {
+                        Task { await startChat(for: task) }
+                    }
+                    .buttonStyle(GlassSecondaryButtonStyle())
+                    .disabled(isStartingChat)
+                }
+
+                if task.hasApplied != true, !isTaskOwner(task), task.status == "open" {
                     NavigationLink(value: TaskApplyRoute(task: task)) {
                         Text("Apply to task")
                             .font(.headline)
@@ -199,6 +234,34 @@ struct TaskDetailView: View {
                 }
                 .buttonStyle(GlassPrimaryButtonStyle())
             }
+        }
+    }
+
+    private func isTaskOwner(_ task: TaskItem) -> Bool {
+        guard let userID = appModel.sessionStore.user?.id,
+              let clientID = task.client?.id else {
+            return false
+        }
+        return userID == clientID
+    }
+
+    private func startChat(for task: TaskItem) async {
+        guard let userID = appModel.sessionStore.user?.id else {
+            appModel.openAuth()
+            return
+        }
+
+        isStartingChat = true
+        defer { isStartingChat = false }
+
+        do {
+            let conversationID = try await appModel.apiClient.startTaskConversation(
+                taskID: task.id,
+                providerID: userID
+            )
+            appModel.openChatTab(conversationID: conversationID)
+        } catch {
+            viewModel?.errorMessage = error.localizedDescription
         }
     }
 }

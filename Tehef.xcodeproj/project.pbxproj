@@ -41,6 +41,12 @@
 		AA0000010000000000000020 /* TehefImageLightbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000024 /* TehefImageLightbox.swift */; };
 		AA0000010000000000000021 /* TehefVoiceRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000025 /* TehefVoiceRecorder.swift */; };
 		AA0000010000000000000022 /* TaskCreateTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000026 /* TaskCreateTabView.swift */; };
+		AA0000010000000000000027 /* TehefCacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000027 /* TehefCacheStore.swift */; };
+		AA0000010000000000000028 /* TehefImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000028 /* TehefImageCache.swift */; };
+		AA0000010000000000000029 /* TaskInteractions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000029 /* TaskInteractions.swift */; };
+		AA000001000000000000002A /* TaskProposalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000101000000000000002A /* TaskProposalView.swift */; };
+		AA000001000000000000002B /* TaskEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000101000000000000002B /* TaskEditView.swift */; };
+		AA000001000000000000002C /* ProfileSecurityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000101000000000000002C /* ProfileSecurityView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -80,6 +86,12 @@
 		AA0001010000000000000024 /* TehefImageLightbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TehefImageLightbox.swift; sourceTree = "<group>"; };
 		AA0001010000000000000025 /* TehefVoiceRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TehefVoiceRecorder.swift; sourceTree = "<group>"; };
 		AA0001010000000000000026 /* TaskCreateTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskCreateTabView.swift; sourceTree = "<group>"; };
+		AA0001010000000000000027 /* TehefCacheStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TehefCacheStore.swift; sourceTree = "<group>"; };
+		AA0001010000000000000028 /* TehefImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TehefImageCache.swift; sourceTree = "<group>"; };
+		AA0001010000000000000029 /* TaskInteractions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskInteractions.swift; sourceTree = "<group>"; };
+		AA000101000000000000002A /* TaskProposalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskProposalView.swift; sourceTree = "<group>"; };
+		AA000101000000000000002B /* TaskEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskEditView.swift; sourceTree = "<group>"; };
+		AA000101000000000000002C /* ProfileSecurityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSecurityView.swift; sourceTree = "<group>"; };
 		AA0002010000000000000001 /* Tehef.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tehef.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -148,6 +160,7 @@
 				AA000401000000000000000A /* API */,
 				AA000401000000000000000B /* Auth */,
 				AA000401000000000000000C /* Models */,
+				AA0004010000000000000013 /* Cache */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -195,8 +208,18 @@
 			isa = PBXGroup;
 			children = (
 				AA0001010000000000000005 /* APIClient.swift */,
+				AA0001010000000000000029 /* TaskInteractions.swift */,
 			);
 			path = API;
+			sourceTree = "<group>";
+		};
+		AA0004010000000000000013 /* Cache */ = {
+			isa = PBXGroup;
+			children = (
+				AA0001010000000000000027 /* TehefCacheStore.swift */,
+				AA0001010000000000000028 /* TehefImageCache.swift */,
+			);
+			path = Cache;
 			sourceTree = "<group>";
 		};
 		AA000401000000000000000B /* Auth */ = {
@@ -241,6 +264,8 @@
 				AA0001010000000000000018 /* TaskApplyView.swift */,
 				AA0001010000000000000019 /* TaskCreateView.swift */,
 				AA0001010000000000000026 /* TaskCreateTabView.swift */,
+				AA000101000000000000002A /* TaskProposalView.swift */,
+				AA000101000000000000002B /* TaskEditView.swift */,
 			);
 			path = Tasks;
 			sourceTree = "<group>";
@@ -259,6 +284,7 @@
 				AA000101000000000000000E /* ProfileView.swift */,
 				AA000101000000000000001A /* ProfileEditView.swift */,
 				AA000101000000000000001B /* PublicProfileView.swift */,
+				AA000101000000000000002C /* ProfileSecurityView.swift */,
 			);
 			path = Profile;
 			sourceTree = "<group>";
@@ -375,6 +401,12 @@
 				AA0000010000000000000020 /* TehefImageLightbox.swift in Sources */,
 				AA0000010000000000000021 /* TehefVoiceRecorder.swift in Sources */,
 				AA0000010000000000000022 /* TaskCreateTabView.swift in Sources */,
+				AA0000010000000000000027 /* TehefCacheStore.swift in Sources */,
+				AA0000010000000000000028 /* TehefImageCache.swift in Sources */,
+				AA0000010000000000000029 /* TaskInteractions.swift in Sources */,
+				AA000001000000000000002A /* TaskProposalView.swift in Sources */,
+				AA000001000000000000002B /* TaskEditView.swift in Sources */,
+				AA000001000000000000002C /* ProfileSecurityView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

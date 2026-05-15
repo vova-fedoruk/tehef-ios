@@ -155,6 +155,7 @@ struct NotificationBellButton: View {
 
 private struct NotificationSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppModel.self) private var appModel
     let model: NotificationCenterModel?
 
     var body: some View {
@@ -185,7 +186,11 @@ private struct NotificationSheet: View {
                                 }
                                 .listRowBackground(Color.clear)
                                 .onTapGesture {
-                                    Task { await model.markRead(notification) }
+                                    Task {
+                                        await model.markRead(notification)
+                                        appModel.handleNotificationHref(notification.href)
+                                        dismiss()
+                                    }
                                 }
                             }
                             .scrollContentBackground(.hidden)

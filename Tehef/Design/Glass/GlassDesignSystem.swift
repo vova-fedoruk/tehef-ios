@@ -7,8 +7,8 @@ enum TehefTheme {
     static let foreground = Color(red: 0.278, green: 0.290, blue: 0.318)
     static let muted = Color(red: 0.988, green: 0.965, blue: 0.961)
     static let mutedForeground = Color(red: 0.420, green: 0.431, blue: 0.451)
-    static let accent = Color(red: 0.161, green: 0.753, blue: 0.847)
-    static let accentSoft = Color(red: 0.161, green: 0.753, blue: 0.847).opacity(0.12)
+    static let accent = Color(red: 41 / 255, green: 192 / 255, blue: 216 / 255)
+    static let accentSoft = Color(red: 41 / 255, green: 192 / 255, blue: 216 / 255).opacity(0.12)
     static let background = Color.white
     static let card = Color.white
     static let border = Color(red: 0.867, green: 0.871, blue: 0.886)
@@ -32,7 +32,7 @@ struct GlassBackdrop: View {
             }
             .overlay {
                 RadialGradient(
-                    colors: [TehefTheme.primary.opacity(0.08), .clear],
+                    colors: [TehefTheme.accent.opacity(0.10), .clear],
                     center: UnitPoint(x: 1.0, y: 0.2),
                     startRadius: 20,
                     endRadius: 420
@@ -129,10 +129,21 @@ struct GlassSearchField: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
-                .foregroundStyle(TehefTheme.mutedForeground)
+                .foregroundStyle(text.isEmpty ? TehefTheme.mutedForeground : TehefTheme.accent)
             TextField(placeholder, text: $text)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(TehefTheme.mutedForeground)
+                        .frame(width: 22, height: 22)
+                }
+                .buttonStyle(.plain)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)

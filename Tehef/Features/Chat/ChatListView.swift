@@ -32,6 +32,7 @@ final class ChatListViewModel {
 struct ChatListView: View {
     @Environment(AppModel.self) private var appModel
     @State private var viewModel: ChatListViewModel?
+    @State private var deepLinkConversation: ConversationSummary?
 
     var body: some View {
         NavigationStack {
@@ -124,16 +125,40 @@ struct ChatListView: View {
                 }
             }
             .navigationBarHidden(true)
+            .navigationDestination(item: $deepLinkConversation) { conversation in
+                ChatThreadView(conversation: conversation)
+            }
+            .onChange(of: appModel.pendingChatConversationID) { _, conversationID in
+                guard let conversationID else { return }
+                Task { await openPendingConversation(conversationID: conversationID) }
+            }
             .task {
                 guard appModel.isAuthenticated else { return }
                 if viewModel == nil {
                     viewModel = ChatListViewModel(apiClient: appModel.apiClient)
                 }
                 await viewModel?.load()
+                if let pendingID = appModel.pendingChatConversationID {
+                    await openPendingConversation(conversationID: pendingID)
+                }
             }
             .refreshable {
                 await viewModel?.load()
             }
+        }
+    }
+
+    private func openPendingConversation(conversationID: Int) async {
+        defer { appModel.pendingChatConversationID = nil }
+        if let viewModel,
+           let conversation = viewModel.conversations.first(where: { $0.id == conversationID }) {
+            deepLinkConversation = conversation
+            return
+        }
+
+        await viewModel?.load()
+        if let conversation = viewModel?.conversations.first(where: { $0.id == conversationID }) {
+            deepLinkConversation = conversation
         }
     }
 }

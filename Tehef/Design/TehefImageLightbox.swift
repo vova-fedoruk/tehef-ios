@@ -89,101 +89,102 @@ struct TehefImageLightbox: View {
 
 struct TehefTaskImageGallery: View {
     let images: [String]
+    let isLiked: Bool
+    let likesCount: Int?
     let onOpen: (Int) -> Void
+    let onToggleLike: () -> Void
 
     @State private var selectedIndex = 0
-    @State private var galleryScrollOffset: CGFloat = 0
-    @State private var galleryDidScroll = false
 
     var body: some View {
         if images.isEmpty {
             EmptyView()
-        } else if images.count == 1 {
-            galleryImage(images[0], index: 0, width: nil)
-                .frame(maxWidth: .infinity)
-                .frame(height: 260)
         } else {
-            VStack(spacing: 12) {
-                GeometryReader { geometry in
-                    ScrollView(.horizontal) {
-                        LazyHStack(spacing: 0) {
-                            ForEach(Array(images.enumerated()), id: \.offset) { index, imageURL in
-                                galleryImage(imageURL, index: index, width: geometry.size.width)
-                                    .id(index)
-                            }
-                        }
-                        .scrollTargetLayout()
-                    }
-                    .scrollTargetBehavior(.paging)
-                    .scrollPosition(id: Binding(
-                        get: { selectedIndex },
-                        set: { newValue in
-                            guard let newValue else { return }
-                            if newValue != selectedIndex {
-                                galleryDidScroll = true
-                                selectedIndex = newValue
-                            }
-                        }
-                    ))
-                    .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                        geometry.contentOffset.x
-                    } action: { _, offset in
-                        if abs(offset - galleryScrollOffset) > 6 {
-                            galleryDidScroll = true
-                        }
-                        galleryScrollOffset = offset
-                    }
-                    .onScrollPhaseChange { _, newPhase in
-                        if newPhase == .idle {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-                                galleryDidScroll = false
-                            }
-                        }
+            ZStack(alignment: .bottom) {
+                TabView(selection: $selectedIndex) {
+                    ForEach(Array(images.enumerated()), id: \.offset) { index, imageURL in
+                        galleryImage(imageURL, index: index)
+                            .tag(index)
                     }
                 }
-                .frame(height: 260)
-
-                HStack {
-                    Text("\(selectedIndex + 1) / \(images.count)")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(TehefTheme.foreground)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(TehefTheme.muted.opacity(0.9), in: Capsule())
-
-                    Spacer()
-
-                    HStack(spacing: 6) {
-                        ForEach(images.indices, id: \.self) { index in
-                            Circle()
-                                .fill(index == selectedIndex ? TehefTheme.primary : TehefTheme.border)
-                                .frame(width: index == selectedIndex ? 8 : 6, height: index == selectedIndex ? 8 : 6)
-                        }
-                    }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .frame(height: 284)
+                .clipShape(RoundedRectangle(cornerRadius: TehefTheme.radiusLarge, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: TehefTheme.radiusLarge, style: .continuous)
+                        .stroke(TehefTheme.border.opacity(0.55), lineWidth: 1)
                 }
+
+                HStack(alignment: .bottom) {
+                    if images.count > 1 {
+                        Text("\(selectedIndex + 1) / \(images.count)")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(TehefTheme.foreground)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(.white.opacity(0.88), in: Capsule())
+                            .glassEffect(.regular, in: .capsule)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    likeButton
+                }
+                .padding(14)
             }
+            .frame(maxWidth: .infinity)
         }
     }
 
     @ViewBuilder
-    private func galleryImage(_ imageURL: String, index: Int, width: CGFloat?) -> some View {
-        TehefRemoteImage(urlString: imageURL, cornerRadius: TehefTheme.radiusLarge)
+    private func galleryImage(_ imageURL: String, index: Int) -> some View {
+        TehefRemoteImage(
+            urlString: imageURL,
+            contentMode: .fill,
+            cornerRadius: TehefTheme.radiusLarge,
+            showsBorder: false
+        )
             .frame(maxWidth: .infinity)
-            .frame(width: width, height: 260)
+            .frame(height: 284)
             .contentShape(RoundedRectangle(cornerRadius: TehefTheme.radiusLarge, style: .continuous))
             .onTapGesture {
-                guard !galleryDidScroll else { return }
                 onOpen(index)
             }
-            .overlay(alignment: .topTrailing) {
+            .overlay(alignment: .topLeading) {
                 Image(systemName: "arrow.up.left.and.arrow.down.right")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(.white)
-                    .padding(8)
-                    .background(.black.opacity(0.45), in: Circle())
+                    .foregroundStyle(TehefTheme.foreground)
+                    .frame(width: 34, height: 34)
+                    .background(.white.opacity(0.86), in: Circle())
+                    .glassEffect(.regular, in: .circle)
                     .padding(12)
-                    .allowsHitTesting(false)
             }
+    }
+
+    private var likeButton: some View {
+        Button(action: onToggleLike) {
+            HStack(spacing: 8) {
+                Image(systemName: isLiked ? "heart.fill" : "heart")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(isLiked ? TehefTheme.primary : TehefTheme.foreground)
+
+                if let likesCount {
+                    Text("\(likesCount)")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(TehefTheme.foreground)
+                }
+            }
+            .padding(.horizontal, likesCount == nil ? 12 : 14)
+            .frame(height: 44)
+            .background(.white.opacity(0.9), in: Capsule())
+            .overlay {
+                Capsule()
+                    .stroke(TehefTheme.border.opacity(0.65), lineWidth: 1)
+            }
+            .glassEffect(.regular.interactive(), in: .capsule)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isLiked ? "Unlike task" : "Like task")
     }
 }
 

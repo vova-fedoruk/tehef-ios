@@ -52,6 +52,47 @@ final class HomeViewModel {
             errorMessage = error.localizedDescription
         }
     }
+
+    func toggleLike(taskID: Int, liked: Bool) async {
+        do {
+            try await apiClient.toggleTaskLike(taskID: taskID, isLiked: liked)
+            let transform: ([TaskItem]) -> [TaskItem] = { tasks in
+                tasks.map { task in
+                    guard task.id == taskID else { return task }
+                    let currentLikes = task.likesCount ?? 0
+                    let nextLiked = !liked
+                    return TaskItem(
+                        id: task.id,
+                        title: task.title,
+                        description: task.description,
+                        budgetMin: task.budgetMin,
+                        budgetMax: task.budgetMax,
+                        location: task.location,
+                        status: task.status,
+                        images: task.images,
+                        requirements: task.requirements,
+                        createdAt: task.createdAt,
+                        deadline: task.deadline,
+                        applicationsCount: task.applicationsCount,
+                        likesCount: max(0, currentLikes + (nextLiked ? 1 : -1)),
+                        viewCount: task.viewCount,
+                        hasApplied: task.hasApplied,
+                        isLiked: nextLiked,
+                        client: task.client,
+                        category: task.category
+                    )
+                }
+            }
+            popularTasks = transform(popularTasks)
+            newestTasks = transform(newestTasks)
+            likedTasks = transform(likedTasks)
+            appliedTasks = transform(appliedTasks)
+            myTasks = transform(myTasks)
+            recommendedTasks = transform(recommendedTasks)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
 }
 
 struct HomeView: View {
@@ -226,11 +267,12 @@ struct HomeView: View {
                     NavigationLink(value: task) {
                         TaskCardView(
                             task: task,
-                            onToggleLike: { _, _ in
-                                if appModel.isAuthenticated {
-                                    return
+                            onToggleLike: { taskID, liked in
+                                if appModel.isAuthenticated, let viewModel {
+                                    Task { await viewModel.toggleLike(taskID: taskID, liked: liked) }
+                                } else {
+                                    appModel.openAuth()
                                 }
-                                appModel.openAuth()
                             }
                         )
                     }

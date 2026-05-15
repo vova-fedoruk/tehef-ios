@@ -17,18 +17,29 @@ final class ChatThreadViewModel {
         self.conversation = conversation
     }
 
-    func load() async {
-        isLoading = true
+    func load(preserveExisting: Bool = false) async {
+        if !preserveExisting {
+            isLoading = true
+        }
         errorMessage = nil
-        defer { isLoading = false }
+        defer {
+            if !preserveExisting {
+                isLoading = false
+            }
+        }
 
         do {
-            messages = try await apiClient.send(
+            let loaded = try await apiClient.send(
                 APIRequest(path: "api/chat/conversations/\(conversation.id)/messages", requiresAuth: true),
                 responseType: [ChatMessage].self
             )
+            if loaded != messages {
+                messages = loaded
+            }
         } catch {
-            errorMessage = error.localizedDescription
+            if !preserveExisting {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -189,6 +200,15 @@ struct ChatThreadView: View {
                 viewModel = ChatThreadViewModel(apiClient: appModel.apiClient, conversation: conversation)
             }
             await viewModel?.load()
+        }
+        .refreshable {
+            await viewModel?.load()
+        }
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(5))
+                await viewModel?.load(preserveExisting: true)
+            }
         }
         .onChange(of: attachmentItem) { _, newItem in
             guard let newItem, let viewModel else { return }

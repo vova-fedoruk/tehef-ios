@@ -102,7 +102,7 @@ struct TaskHubView: View {
                                 .buttonStyle(.plain)
                             }
                             .padding(.horizontal, 20)
-                            .padding(.bottom, 24)
+                            .padding(.bottom, 96)
                         }
                     }
                 }

@@ -30,57 +30,11 @@ struct TehefRemoteImage: View {
     var showsBorder = true
 
     var body: some View {
-        Group {
-            if let url = TehefMediaURL.resolve(urlString) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        remoteImage(image)
-                    case .failure:
-                        placeholder
-                    default:
-                        ProgressView()
-                            .tint(TehefTheme.primary)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
-                }
-            } else {
-                placeholder
-            }
-        }
-        .overlay {
-            if showsBorder {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(TehefTheme.border.opacity(0.45), lineWidth: 1)
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-    }
-
-    @ViewBuilder
-    private func remoteImage(_ image: Image) -> some View {
-        switch contentMode {
-        case .fit:
-            image
-                .resizable()
-                .scaledToFit()
-        case .fill:
-            image
-                .resizable()
-                .scaledToFill()
-        @unknown default:
-            image
-                .resizable()
-                .scaledToFill()
-        }
-    }
-
-    private var placeholder: some View {
-        TehefTheme.muted
-            .overlay {
-                Image(systemName: "photo")
-                    .font(.title3)
-                    .foregroundStyle(TehefTheme.mutedForeground)
-            }
+        TehefCachedRemoteImage(
+            urlString: urlString,
+            contentMode: contentMode,
+            cornerRadius: cornerRadius,
+            showsBorder: showsBorder
+        )
     }
 }

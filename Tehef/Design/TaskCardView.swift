@@ -19,57 +19,94 @@ struct TaskCardView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: isBrowse ? 8 : 10) {
+        VStack(alignment: .leading, spacing: 0) {
             taskImage
+                .overlay(alignment: .topTrailing) {
+                    if isBrowse, onToggleLike != nil {
+                        likeButton
+                            .padding(8)
+                    }
+                }
 
             HStack(alignment: .top, spacing: 10) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(task.title)
-                        .font(isBrowse ? .system(size: 13, weight: .medium) : .subheadline.weight(.medium))
-                        .foregroundStyle(TehefTheme.foreground)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
+                taskSummary
 
-                    if task.budgetMin != nil || task.budgetMax != nil {
-                        Text(task.budgetLabel)
-                            .font(isBrowse ? .subheadline.weight(.bold) : .body.weight(.bold))
-                            .foregroundStyle(TehefTheme.foreground)
-                    }
-
-                    if !task.locationLabel.isEmpty {
-                        Label(task.locationLabel, systemImage: "mappin")
-                            .font(isBrowse ? .system(size: 11) : .caption)
-                            .foregroundStyle(TehefTheme.mutedForeground)
-                            .lineLimit(1)
-                    }
-
-                    if task.hasApplied == true {
-                        TehefBadge(text: "Application submitted")
-                    }
-                }
-
-                Spacer(minLength: 0)
-
-                if let onToggleLike {
-                    Button {
-                        onToggleLike(task.id, task.isLiked == true)
-                    } label: {
-                        Image(systemName: task.isLiked == true ? "heart.fill" : "heart")
-                            .font(.system(size: isBrowse ? 16 : 18, weight: .medium))
-                            .foregroundStyle(task.isLiked == true ? TehefTheme.primary : TehefTheme.mutedForeground)
-                            .frame(width: 32, height: 32)
-                            .background(TehefTheme.muted.opacity(0.7), in: Circle())
-                    }
-                    .buttonStyle(.plain)
+                if !isBrowse, onToggleLike != nil {
+                    Spacer(minLength: 0)
+                    likeButton
                 }
             }
+            .padding(isBrowse ? 12 : 0)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .frame(minHeight: isBrowse ? 112 : nil, alignment: .topLeading)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
+        .background {
+            if isBrowse {
+                RoundedRectangle(cornerRadius: TehefTheme.radiusLarge, style: .continuous)
+                    .fill(TehefTheme.card.opacity(0.92))
+            }
+        }
+        .overlay {
+            if isBrowse {
+                RoundedRectangle(cornerRadius: TehefTheme.radiusLarge, style: .continuous)
+                    .stroke(TehefTheme.border.opacity(0.55), lineWidth: 1)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: isBrowse ? TehefTheme.radiusLarge : 0, style: .continuous))
+    }
+
+    private var taskSummary: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(task.title)
+                .font(isBrowse ? .system(size: 15, weight: .semibold) : .subheadline.weight(.medium))
+                .foregroundStyle(TehefTheme.foreground)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if task.budgetMin != nil || task.budgetMax != nil {
+                Text(task.budgetLabel)
+                    .font(isBrowse ? .system(size: 16, weight: .bold) : .body.weight(.bold))
+                    .foregroundStyle(TehefTheme.foreground)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+
+            if !task.locationLabel.isEmpty {
+                Label(task.locationLabel, systemImage: "mappin")
+                    .font(isBrowse ? .system(size: 12, weight: .medium) : .caption)
+                    .foregroundStyle(TehefTheme.mutedForeground)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+
+            if task.hasApplied == true {
+                TehefBadge(text: "Application submitted", tint: TehefTheme.accent)
+            }
+        }
+    }
+
+    private var likeButton: some View {
+        Button {
+            onToggleLike?(task.id, task.isLiked == true)
+        } label: {
+            Image(systemName: task.isLiked == true ? "heart.fill" : "heart")
+                .font(.system(size: isBrowse ? 15 : 18, weight: .semibold))
+                .foregroundStyle(task.isLiked == true ? TehefTheme.primary : TehefTheme.foreground)
+                .frame(width: isBrowse ? 34 : 32, height: isBrowse ? 34 : 32)
+                .background(.white.opacity(0.9), in: Circle())
+                .overlay {
+                    Circle()
+                        .stroke(TehefTheme.border.opacity(0.65), lineWidth: 1)
+                }
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
     private var taskImage: some View {
-        let cornerRadius: CGFloat = isBrowse ? TehefTheme.radiusMedium : TehefTheme.radiusLarge
+        let cornerRadius: CGFloat = isBrowse ? TehefTheme.radiusLarge : TehefTheme.radiusLarge
 
         Color.clear
             .aspectRatio(imageAspectRatio, contentMode: .fit)
@@ -79,7 +116,7 @@ struct TaskCardView: View {
                     TehefRemoteImage(
                         urlString: task.images.first,
                         contentMode: .fill,
-                        cornerRadius: cornerRadius,
+                        cornerRadius: isBrowse ? 0 : cornerRadius,
                         showsBorder: false
                     )
                 } else {
@@ -87,10 +124,12 @@ struct TaskCardView: View {
                 }
             }
             .clipped()
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: isBrowse ? 0 : cornerRadius, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(TehefTheme.border.opacity(0.45), lineWidth: 1)
+                if !isBrowse {
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .stroke(TehefTheme.border.opacity(0.45), lineWidth: 1)
+                }
             }
     }
 

@@ -121,6 +121,47 @@ final class TaskBrowseViewModel {
             errorMessage = error.localizedDescription
         }
     }
+
+    func toggleLike(taskID: Int, liked: Bool) async {
+        do {
+            try await apiClient.toggleTaskLike(taskID: taskID, isLiked: liked)
+            tasks = tasks.map { task in
+                guard task.id == taskID else { return task }
+                let currentLikes = task.likesCount ?? 0
+                let nextLiked = !liked
+                return mirroredTask(
+                    task,
+                    isLiked: nextLiked,
+                    likesCount: max(0, currentLikes + (nextLiked ? 1 : -1))
+                )
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func mirroredTask(_ task: TaskItem, isLiked: Bool, likesCount: Int) -> TaskItem {
+        TaskItem(
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            budgetMin: task.budgetMin,
+            budgetMax: task.budgetMax,
+            location: task.location,
+            status: task.status,
+            images: task.images,
+            requirements: task.requirements,
+            createdAt: task.createdAt,
+            deadline: task.deadline,
+            applicationsCount: task.applicationsCount,
+            likesCount: likesCount,
+            viewCount: task.viewCount,
+            hasApplied: task.hasApplied,
+            isLiked: isLiked,
+            client: task.client,
+            category: task.category
+        )
+    }
 }
 
 struct TaskBrowseView: View {
@@ -132,6 +173,7 @@ struct TaskBrowseView: View {
     @State private var draftFilters = TaskBrowseFilters()
     @State private var isBrowsingChromeVisible = true
     @State private var lastScrollOffset: CGFloat = 0
+    @State private var deepLinkTask: TaskItem?
 
     var body: some View {
         NavigationStack {
@@ -152,6 +194,13 @@ struct TaskBrowseView: View {
             .navigationBarHidden(true)
             .navigationDestination(for: TaskItem.self) { task in
                 TaskDetailView(task: task)
+            }
+            .navigationDestination(item: $deepLinkTask) { task in
+                TaskDetailView(task: task)
+            }
+            .onChange(of: appModel.pendingTaskID) { _, taskID in
+                guard let taskID else { return }
+                Task { await openPendingTask(taskID: taskID) }
             }
             .task {
                 if viewModel == nil {
@@ -352,8 +401,10 @@ struct TaskBrowseView: View {
                     NavigationLink(value: task) {
                         TaskCardView(
                             task: task,
-                            onToggleLike: { _, _ in
-                                if !appModel.isAuthenticated {
+                            onToggleLike: { taskID, liked in
+                                if appModel.isAuthenticated {
+                                    Task { await viewModel.toggleLike(taskID: taskID, liked: liked) }
+                                } else {
                                     appModel.openAuth()
                                 }
                             }
@@ -431,6 +482,19 @@ struct TaskBrowseView: View {
     private func applySearch(to viewModel: TaskBrowseViewModel) {
         viewModel.filters.search = searchText
         Task { await viewModel.load() }
+    }
+
+    private func openPendingTask(taskID: Int) async {
+        defer { appModel.pendingTaskID = nil }
+        do {
+            let task = try await appModel.apiClient.send(
+                APIRequest(path: "api/tasks/\(taskID)", cachePolicy: .networkFirst),
+                responseType: TaskItem.self
+            )
+            deepLinkTask = task
+        } catch {
+            // Ignore deep-link failures silently.
+        }
     }
 
     private func activeFilterChips(for viewModel: TaskBrowseViewModel) -> [String] {

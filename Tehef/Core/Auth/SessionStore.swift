@@ -52,6 +52,12 @@ final class SessionStore {
         accessToken = nil
         refreshToken = nil
         KeychainStore.clearAll()
+        Task {
+            await TehefCacheStore.shared.clearAll()
+            await MainActor.run {
+                TehefImageCache.shared.clear()
+            }
+        }
     }
 
     @discardableResult

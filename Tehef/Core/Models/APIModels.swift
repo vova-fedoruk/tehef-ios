@@ -193,6 +193,46 @@ struct TaskItem: Codable, Identifiable, Hashable {
         case category
     }
 
+    init(
+        id: Int,
+        title: String,
+        description: String,
+        budgetMin: Double?,
+        budgetMax: Double?,
+        location: TaskLocation?,
+        status: String,
+        images: [String],
+        requirements: [String]?,
+        createdAt: String?,
+        deadline: String?,
+        applicationsCount: Int?,
+        likesCount: Int?,
+        viewCount: Int?,
+        hasApplied: Bool?,
+        isLiked: Bool?,
+        client: TaskClientSummary?,
+        category: TaskCategorySummary?
+    ) {
+        self.id = id
+        self.title = title
+        self.description = description
+        self.budgetMin = budgetMin
+        self.budgetMax = budgetMax
+        self.location = location
+        self.status = status
+        self.images = images
+        self.requirements = requirements
+        self.createdAt = createdAt
+        self.deadline = deadline
+        self.applicationsCount = applicationsCount
+        self.likesCount = likesCount
+        self.viewCount = viewCount
+        self.hasApplied = hasApplied
+        self.isLiked = isLiked
+        self.client = client
+        self.category = category
+    }
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(Int.self, forKey: .id)
@@ -388,4 +428,46 @@ struct SendMessageRequest: Encodable {
 
 struct UploadResponse: Decodable {
     let url: String
+}
+
+struct TaskApplicationProvider: Codable, Identifiable, Hashable {
+    let id: Int
+    let firstName: String
+    let lastName: String
+    let avatarUrl: String?
+    let rating: Double?
+    let isVerified: Bool?
+
+    var displayName: String {
+        "\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces)
+    }
+}
+
+struct TaskApplicationSummary: Codable, Identifiable, Hashable {
+    let id: Int
+    let taskId: Int
+    let providerId: Int
+    let proposedPrice: Double
+    let message: String?
+    let estimatedDuration: Double?
+    let status: String
+    let createdAt: String?
+    let provider: TaskApplicationProvider?
+}
+
+struct UpdateTaskRequest: Encodable {
+    let title: String
+    let description: String
+    let categoryId: Int
+    let budgetMin: Double?
+    let budgetMax: Double?
+    let deadline: String?
+    let location: TaskLocation
+    let requirements: [String]
+    let images: [String]
+}
+
+struct ChangePasswordRequest: Encodable {
+    let currentPassword: String
+    let newPassword: String
 }
