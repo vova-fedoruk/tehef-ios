@@ -18,6 +18,11 @@ struct RootView: View {
         )) {
             AuthFlowView(startsInSignUp: appModel.authStartsInSignUp)
         }
+        .onOpenURL { url in
+            Task {
+                await appModel.handleOAuthRedirect(url)
+            }
+        }
         .task {
             await appModel.sessionStore.bootstrap()
             isBootstrapping = false

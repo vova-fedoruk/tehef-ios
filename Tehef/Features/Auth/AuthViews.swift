@@ -1,4 +1,5 @@
 import SwiftUI
+import AuthenticationServices
 
 struct AuthFlowView: View {
     @Environment(AppModel.self) private var appModel
@@ -58,7 +59,9 @@ struct LoginView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var isSubmitting = false
+    @State private var isGoogleSubmitting = false
     @State private var errorMessage: String?
+    @State private var googleCoordinator = GoogleOAuthCoordinator()
 
     var body: some View {
         ScrollView {
@@ -105,6 +108,12 @@ struct LoginView: View {
                 }
                 .glassCard(cornerRadius: 24)
 
+                Button(isGoogleSubmitting ? "Connecting…" : "Continue with Google") {
+                    Task { await signInWithGoogle() }
+                }
+                .buttonStyle(GlassSecondaryButtonStyle())
+                .disabled(isGoogleSubmitting || isSubmitting)
+
                 Button("Create an account") {
                     switchToSignUp()
                 }
@@ -125,6 +134,21 @@ struct LoginView: View {
             errorMessage = error.localizedDescription
         }
     }
+
+    private func signInWithGoogle() async {
+        isGoogleSubmitting = true
+        errorMessage = nil
+        defer { isGoogleSubmitting = false }
+
+        do {
+            let code = try await googleCoordinator.start(baseURL: APIEnvironment.baseURL)
+            try await appModel.sessionStore.completeOAuthExchange(code: code)
+        } catch let authError as ASWebAuthenticationSessionError where authError.code == .canceledLogin {
+            // User dismissed the browser
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
 }
 
 struct SignUpView: View {
@@ -138,7 +162,9 @@ struct SignUpView: View {
     @State private var password = ""
     @State private var role = "client"
     @State private var isSubmitting = false
+    @State private var isGoogleSubmitting = false
     @State private var errorMessage: String?
+    @State private var googleCoordinator = GoogleOAuthCoordinator()
 
     var body: some View {
         ScrollView {
@@ -198,6 +224,12 @@ struct SignUpView: View {
                 }
                 .glassCard(cornerRadius: 24)
 
+                Button(isGoogleSubmitting ? "Connecting…" : "Continue with Google") {
+                    Task { await signUpWithGoogle() }
+                }
+                .buttonStyle(GlassSecondaryButtonStyle())
+                .disabled(isGoogleSubmitting || isSubmitting)
+
                 Button("Already have an account? Sign in") {
                     switchToLogin()
                 }
@@ -227,6 +259,20 @@ struct SignUpView: View {
 
         do {
             try await appModel.sessionStore.signUp(request: request)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func signUpWithGoogle() async {
+        isGoogleSubmitting = true
+        errorMessage = nil
+        defer { isGoogleSubmitting = false }
+
+        do {
+            let code = try await googleCoordinator.start(baseURL: APIEnvironment.baseURL)
+            try await appModel.sessionStore.completeOAuthExchange(code: code)
+        } catch let authError as ASWebAuthenticationSessionError where authError.code == .canceledLogin {
         } catch {
             errorMessage = error.localizedDescription
         }

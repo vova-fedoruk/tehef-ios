@@ -1,6 +1,13 @@
 import Foundation
 import Observation
 
+/// Deep-link payload when switching to the Tasks tab from Home or elsewhere.
+enum TasksTabNavigation: Equatable {
+    case exploreAll
+    case filterByCategory(Int)
+    case showApplied
+}
+
 @MainActor
 @Observable
 final class AppModel {
@@ -22,14 +29,25 @@ final class AppModel {
     var authStartsInSignUp = false
     var pendingChatConversationID: Int?
     var pendingTaskID: Int?
+    /// Bumped whenever `openTasksTab` requests a specific browse mode; `TaskBrowseView` consumes `pendingTasksNavigation` when this changes.
+    var pendingTasksTrigger: UUID?
+    var pendingTasksNavigation: TasksTabNavigation?
 
     func openAuth(signUp: Bool = false) {
         authStartsInSignUp = signUp
         showAuthSheet = true
     }
 
-    func openTasksTab() {
+    func openTasksTab(_ navigation: TasksTabNavigation = .exploreAll) {
+        pendingTasksNavigation = navigation
+        pendingTasksTrigger = UUID()
         selectedTab = 1
+    }
+
+    func consumePendingTasksNavigation() -> TasksTabNavigation? {
+        let value = pendingTasksNavigation
+        pendingTasksNavigation = nil
+        return value
     }
 
     func openCreateTask() {
@@ -67,5 +85,12 @@ final class AppModel {
                 openTaskDetail(taskID: taskID)
             }
         }
+    }
+
+    func handleOAuthRedirect(_ url: URL) async {
+        guard url.scheme == "tehef", url.host == "oauth" else { return }
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems
+        guard let code = items?.first(where: { $0.name == "code" })?.value, !code.isEmpty else { return }
+        try? await sessionStore.completeOAuthExchange(code: code)
     }
 }

@@ -20,6 +20,18 @@ struct TaskBrowseFilters: Equatable {
     var minBudget = ""
     var maxBudget = ""
 
+    init(
+        search: String = "",
+        categoryId: Int? = nil,
+        minBudget: String = "",
+        maxBudget: String = ""
+    ) {
+        self.search = search
+        self.categoryId = categoryId
+        self.minBudget = minBudget
+        self.maxBudget = maxBudget
+    }
+
     var activeCount: Int {
         var count = 0
         if !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { count += 1 }
@@ -179,12 +191,17 @@ struct TaskBrowseView: View {
                 guard let taskID else { return }
                 Task { await openPendingTask(taskID: taskID) }
             }
+            .onChange(of: appModel.pendingTasksTrigger) { _, _ in
+                Task { await applyPendingTasksNavigationIfNeeded() }
+            }
             .task {
                 if viewModel == nil {
                     viewModel = TaskBrowseViewModel(apiClient: appModel.apiClient)
                 }
                 await viewModel?.loadCategoriesIfNeeded()
-                await viewModel?.load()
+                if await applyPendingTasksNavigationIfNeeded() == false {
+                    await viewModel?.load()
+                }
             }
             .refreshable {
                 await viewModel?.load(preserveResults: true)
@@ -449,6 +466,39 @@ struct TaskBrowseView: View {
     private func applySearch(to viewModel: TaskBrowseViewModel) {
         viewModel.filters.search = searchText
         Task { await viewModel.load() }
+    }
+
+    /// Returns `true` if a pending home / deep-link intent was applied (includes its own load).
+    @discardableResult
+    private func applyPendingTasksNavigationIfNeeded() async -> Bool {
+        guard let viewModel, let nav = appModel.consumePendingTasksNavigation() else { return false }
+
+        revealBrowsingChrome()
+        lastScrollOffset = 0
+
+        switch nav {
+        case .exploreAll:
+            selectedSection = .all
+            searchText = ""
+            viewModel.filters = TaskBrowseFilters()
+            await viewModel.switchSection(to: .all)
+        case .filterByCategory(let id):
+            selectedSection = .all
+            searchText = ""
+            viewModel.filters = TaskBrowseFilters(categoryId: id)
+            await viewModel.switchSection(to: .all)
+        case .showApplied:
+            if appModel.isAuthenticated {
+                selectedSection = .applied
+                await viewModel.switchSection(to: .applied)
+            } else {
+                selectedSection = .all
+                searchText = ""
+                viewModel.filters = TaskBrowseFilters()
+                await viewModel.switchSection(to: .all)
+            }
+        }
+        return true
     }
 
     private func openPendingTask(taskID: Int) async {

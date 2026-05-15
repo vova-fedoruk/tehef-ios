@@ -46,5 +46,16 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>io.tehef.app.oauth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>tehef</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

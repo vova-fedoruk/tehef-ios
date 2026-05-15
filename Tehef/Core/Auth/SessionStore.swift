@@ -115,6 +115,21 @@ final class SessionStore {
         persistSession(accessToken: token, refreshToken: response.refreshToken, user: response.user)
     }
 
+    func completeOAuthExchange(code: String) async throws {
+        let response: AuthResponse = try await send(
+            path: "api/auth/oauth/exchange",
+            method: .post,
+            body: OAuthExchangeRequest(code: code),
+            authorized: false
+        )
+
+        guard let token = response.resolvedAccessToken else {
+            throw APIError.server(message: "OAuth exchange did not include an access token.")
+        }
+
+        persistSession(accessToken: token, refreshToken: response.refreshToken, user: response.user)
+    }
+
     func logout() {
         clearSession()
     }

@@ -1,5 +1,17 @@
 import SwiftUI
 
+private let homePreviewTaskLimit = 4
+
+private struct HomeTaskRail: Identifiable {
+    let id: String
+    let title: String
+    let subtitle: String
+    let icon: String
+    let iconColor: Color
+    let tasks: [TaskItem]
+    let seeAllNavigation: TasksTabNavigation
+}
+
 @MainActor
 @Observable
 final class HomeViewModel {
@@ -91,72 +103,37 @@ struct HomeView: View {
                     TehefAppHeader()
 
                     ScrollView {
-                        VStack(alignment: .leading, spacing: 28) {
+                        VStack(alignment: .leading, spacing: 24) {
                             hero
+
                             if let viewModel {
-                            if viewModel.isLoading && viewModel.popularTasks.isEmpty {
-                                ProgressView()
-                                    .tint(TehefTheme.primary)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.top, 40)
-                            } else if let errorMessage = viewModel.errorMessage {
-                                Text(errorMessage)
-                                    .foregroundStyle(TehefTheme.destructive)
-                                    .glassCard()
-                            } else {
-                                if !viewModel.categories.isEmpty {
-                                    categoriesSection(viewModel.categories)
+                                if viewModel.isLoading && viewModel.popularTasks.isEmpty && viewModel.newestTasks.isEmpty {
+                                    ProgressView()
+                                        .tint(TehefTheme.primary)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.top, 36)
+                                } else if let errorMessage = viewModel.errorMessage {
+                                    Text(errorMessage)
+                                        .font(.subheadline)
+                                        .foregroundStyle(TehefTheme.destructive)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding(16)
+                                        .glassCard(cornerRadius: 20)
+                                } else {
+                                    if !viewModel.categories.isEmpty {
+                                        categoriesSection(viewModel.categories)
+                                    }
+
+                                    ForEach(taskRails(from: viewModel)) { rail in
+                                        taskRail(rail, viewModel: viewModel)
+                                    }
                                 }
-                                if appModel.isAuthenticated {
-                                    taskSection(
-                                        title: "My tasks",
-                                        subtitle: "Tasks you posted and manage.",
-                                        icon: "tray.full.fill",
-                                        iconColor: TehefTheme.primary,
-                                        tasks: viewModel.myTasks
-                                    )
-                                    taskSection(
-                                        title: "Applied tasks",
-                                        subtitle: "Tasks where you submitted a proposal.",
-                                        icon: "paperplane.fill",
-                                        iconColor: TehefTheme.accent,
-                                        tasks: viewModel.appliedTasks
-                                    )
-                                    taskSection(
-                                        title: "Liked tasks",
-                                        subtitle: "Tasks you saved for later.",
-                                        icon: "heart.fill",
-                                        iconColor: TehefTheme.primary,
-                                        tasks: viewModel.likedTasks
-                                    )
-                                    taskSection(
-                                        title: "Recommended for you",
-                                        subtitle: "Personalized opportunities based on your activity.",
-                                        icon: "sparkles",
-                                        iconColor: TehefTheme.accent,
-                                        tasks: viewModel.recommendedTasks
-                                    )
-                                }
-                                taskSection(
-                                    title: "Popular tasks",
-                                    subtitle: "Trending requests from clients across Israel.",
-                                    icon: "chart.line.uptrend.xyaxis",
-                                    iconColor: TehefTheme.primary,
-                                    tasks: viewModel.popularTasks
-                                )
-                                taskSection(
-                                    title: "Newest tasks",
-                                    subtitle: "Fresh opportunities posted recently.",
-                                    icon: "sparkles",
-                                    iconColor: TehefTheme.accent,
-                                    tasks: viewModel.newestTasks
-                                )
                             }
                         }
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 96)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 96)
-                    }
+                    .scrollIndicators(.hidden)
                 }
             }
             .navigationBarHidden(true)
@@ -175,92 +152,238 @@ struct HomeView: View {
             .refreshable {
                 await viewModel?.load()
             }
+            .onChange(of: appModel.isAuthenticated) { _, _ in
+                viewModel = HomeViewModel(
+                    apiClient: appModel.apiClient,
+                    isAuthenticated: appModel.isAuthenticated
+                )
+                Task { await viewModel?.load() }
+            }
         }
     }
 
     private var hero: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(appModel.isAuthenticated ? "Welcome back" : "Find trusted help in Israel")
-                .font(.system(.title, design: .rounded, weight: .bold))
-                .foregroundStyle(TehefTheme.foreground)
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(heroTitle)
+                    .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                    .foregroundStyle(TehefTheme.foreground)
+                    .fixedSize(horizontal: false, vertical: true)
 
-            Text("Browse open tasks, connect with providers, and manage work in one place.")
-                .font(.body)
-                .foregroundStyle(TehefTheme.mutedForeground)
+                Text(heroSubtitle)
+                    .font(.body)
+                    .foregroundStyle(TehefTheme.mutedForeground)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
-            HStack(spacing: 12) {
-                Button("Browse tasks") {
-                    appModel.openTasksTab()
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    heroButtons
                 }
-                .buttonStyle(GlassPrimaryButtonStyle())
-
-                if appModel.isAuthenticated {
-                    Button("Post a task") {
-                        appModel.openCreateTask()
-                    }
-                    .buttonStyle(GlassSecondaryButtonStyle())
-                } else {
-                    Button("Sign in") {
-                        appModel.openAuth()
-                    }
-                    .buttonStyle(GlassSecondaryButtonStyle())
+                VStack(spacing: 10) {
+                    heroButtons
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
         .glassCard(cornerRadius: 24)
     }
 
-    @ViewBuilder
-    private func categoriesSection(_ categories: [CategoryStat]) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("CATEGORIES")
-                .font(.caption.weight(.semibold))
-                .kerning(1.2)
-                .foregroundStyle(TehefTheme.mutedForeground)
-                .frame(maxWidth: .infinity, alignment: .center)
-
-            CategoryCirclesView(categories: categories)
+    private var heroTitle: String {
+        if appModel.isAuthenticated, let first = appModel.sessionStore.user?.firstName, !first.isEmpty {
+            return "Hi, \(first)"
         }
-        .glassCard(cornerRadius: 24)
+        if appModel.isAuthenticated {
+            return "Welcome back"
+        }
+        return "Find help nearby"
+    }
+
+    private var heroSubtitle: String {
+        if appModel.isAuthenticated {
+            return "Pick up where you left off—or discover something new."
+        }
+        return "Browse open tasks, message providers, and hire with confidence."
     }
 
     @ViewBuilder
-    private func taskSection(
-        title: String,
-        subtitle: String,
-        icon: String,
-        iconColor: Color,
-        tasks: [TaskItem]
-    ) -> some View {
-        if !tasks.isEmpty {
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 8) {
-                        Image(systemName: icon)
-                            .foregroundStyle(iconColor)
-                        Text(title)
-                            .tehefHeadline()
-                    }
-                    Text(subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(TehefTheme.mutedForeground)
-                }
+    private var heroButtons: some View {
+        Button("Browse tasks") {
+            appModel.openTasksTab(.exploreAll)
+        }
+        .buttonStyle(GlassPrimaryButtonStyle())
 
-                TaskGridRows(items: tasks, spacing: 16) { task in
-                    TaskCardLink(task: task) { taskID, liked in
-                        if let viewModel {
-                            Task { await viewModel.toggleLike(taskID: taskID, liked: liked) }
-                        }
-                    }
-                }
-
-                Button("View all tasks") {
-                    appModel.openTasksTab()
-                }
-                .buttonStyle(GlassSecondaryButtonStyle())
+        if appModel.isAuthenticated {
+            Button("Post a task") {
+                appModel.openCreateTask()
             }
-            .glassCard(cornerRadius: 24)
+            .buttonStyle(GlassSecondaryButtonStyle())
+        } else {
+            Button("Sign in") {
+                appModel.openAuth()
+            }
+            .buttonStyle(GlassSecondaryButtonStyle())
         }
+    }
+
+    private func categoriesSection(_ categories: [CategoryStat]) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Browse by category")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(TehefTheme.foreground)
+                Text("Jump to open tasks in a category.")
+                    .font(.caption)
+                    .foregroundStyle(TehefTheme.mutedForeground)
+            }
+
+            CategoryCirclesView(categories: categories, onSelectCategory: { category in
+                appModel.openTasksTab(.filterByCategory(category.id))
+            })
+        }
+        .padding(18)
+        .glassCard(cornerRadius: 24)
+    }
+
+    private func taskRails(from viewModel: HomeViewModel) -> [HomeTaskRail] {
+        var rails: [HomeTaskRail] = []
+
+        if appModel.isAuthenticated {
+            if !viewModel.recommendedTasks.isEmpty {
+                rails.append(
+                    HomeTaskRail(
+                        id: "recommended",
+                        title: "Recommended for you",
+                        subtitle: "Based on your activity and interests.",
+                        icon: "sparkles",
+                        iconColor: TehefTheme.accent,
+                        tasks: viewModel.recommendedTasks,
+                        seeAllNavigation: .exploreAll
+                    )
+                )
+            }
+            if !viewModel.myTasks.isEmpty {
+                rails.append(
+                    HomeTaskRail(
+                        id: "my",
+                        title: "My tasks",
+                        subtitle: "Listings you manage as a client.",
+                        icon: "tray.full.fill",
+                        iconColor: TehefTheme.primary,
+                        tasks: viewModel.myTasks,
+                        seeAllNavigation: .exploreAll
+                    )
+                )
+            }
+            if !viewModel.appliedTasks.isEmpty {
+                rails.append(
+                    HomeTaskRail(
+                        id: "applied",
+                        title: "Applied",
+                        subtitle: "Where you’ve already sent a proposal.",
+                        icon: "paperplane.fill",
+                        iconColor: TehefTheme.accent,
+                        tasks: viewModel.appliedTasks,
+                        seeAllNavigation: .showApplied
+                    )
+                )
+            }
+        }
+
+        if !viewModel.popularTasks.isEmpty {
+            rails.append(
+                HomeTaskRail(
+                    id: "popular",
+                    title: "Popular",
+                    subtitle: "What clients are posting right now.",
+                    icon: "chart.line.uptrend.xyaxis",
+                    iconColor: TehefTheme.primary,
+                    tasks: viewModel.popularTasks,
+                    seeAllNavigation: .exploreAll
+                )
+            )
+        }
+
+        if !viewModel.newestTasks.isEmpty {
+            rails.append(
+                HomeTaskRail(
+                    id: "newest",
+                    title: "Just posted",
+                    subtitle: "Fresh tasks from the last few days.",
+                    icon: "clock.fill",
+                    iconColor: TehefTheme.accent,
+                    tasks: viewModel.newestTasks,
+                    seeAllNavigation: .exploreAll
+                )
+            )
+        }
+
+        if appModel.isAuthenticated, !viewModel.likedTasks.isEmpty {
+            rails.append(
+                HomeTaskRail(
+                    id: "liked",
+                    title: "Saved",
+                    subtitle: "Tasks you liked for later.",
+                    icon: "heart.fill",
+                    iconColor: TehefTheme.primary,
+                    tasks: viewModel.likedTasks,
+                    seeAllNavigation: .exploreAll
+                )
+            )
+        }
+
+        return rails
+    }
+
+    private func taskRail(_ rail: HomeTaskRail, viewModel: HomeViewModel) -> some View {
+        let preview = Array(rail.tasks.prefix(homePreviewTaskLimit))
+
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                HStack(spacing: 10) {
+                    Image(systemName: rail.icon)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(rail.iconColor)
+                        .frame(width: 36, height: 36)
+                        .background(rail.iconColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(rail.title)
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(TehefTheme.foreground)
+                        Text(rail.subtitle)
+                            .font(.caption)
+                            .foregroundStyle(TehefTheme.mutedForeground)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                Spacer(minLength: 8)
+
+                if rail.tasks.count > preview.count {
+                    Button {
+                        appModel.openTasksTab(rail.seeAllNavigation)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text("See all")
+                                .font(.subheadline.weight(.semibold))
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.bold))
+                        }
+                        .foregroundStyle(TehefTheme.accent)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            TaskGridRows(items: preview, spacing: 12) { task in
+                TaskCardLink(task: task) { taskID, liked in
+                    Task { await viewModel.toggleLike(taskID: taskID, liked: liked) }
+                }
+            }
+        }
+        .padding(18)
+        .glassCard(cornerRadius: 24)
     }
 }

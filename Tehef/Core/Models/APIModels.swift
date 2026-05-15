@@ -345,6 +345,10 @@ struct SignUpRequest: Encodable {
     let phone: String?
 }
 
+struct OAuthExchangeRequest: Encodable {
+    let code: String
+}
+
 struct AuthResponse: Decodable {
     let accessToken: String?
     let token: String?
@@ -518,6 +522,7 @@ struct SubmitTaskReviewRequest: Encodable {
 
 struct TaskReview: Codable, Identifiable, Hashable {
     let id: Int
+    let reviewerId: Int?
     let rating: Int
     let comment: String?
     let createdAt: String?

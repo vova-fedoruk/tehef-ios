@@ -44,41 +44,66 @@ enum CategoryIconMapper {
 
 struct CategoryCirclesView: View {
     let categories: [CategoryStat]
+    var onSelectCategory: ((CategoryStat) -> Void)?
+
+    init(categories: [CategoryStat], onSelectCategory: ((CategoryStat) -> Void)? = nil) {
+        self.categories = categories
+        self.onSelectCategory = onSelectCategory
+    }
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 24) {
+            HStack(spacing: 20) {
                 ForEach(categories) { category in
-                    VStack(spacing: 12) {
-                        ZStack {
-                            Circle()
-                                .fill(TehefTheme.card)
-                                .overlay {
-                                    Circle()
-                                        .stroke(TehefTheme.border.opacity(0.7), lineWidth: 1)
-                                }
-                                .shadow(color: .black.opacity(0.05), radius: 8, y: 3)
-                                .frame(width: 84, height: 84)
+                    let content = categoryCell(for: category)
 
-                            Circle()
-                                .fill(TehefTheme.primary.opacity(0.10))
-                                .frame(width: 58, height: 58)
-                                .overlay {
-                                    Image(systemName: CategoryIconMapper.symbol(for: category.icon))
-                                        .font(.system(size: 24, weight: .medium))
-                                        .foregroundStyle(TehefTheme.primary)
-                                }
+                    if let onSelectCategory {
+                        Button {
+                            onSelectCategory(category)
+                        } label: {
+                            content
                         }
-
-                        Text(category.name)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(TehefTheme.foreground)
-                            .multilineTextAlignment(.center)
-                            .frame(width: 92)
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Browse \(category.name) tasks")
+                    } else {
+                        content
                     }
                 }
             }
-            .padding(.horizontal, 4)
+            .padding(.vertical, 4)
+            .padding(.horizontal, 2)
+        }
+    }
+
+    @ViewBuilder
+    private func categoryCell(for category: CategoryStat) -> some View {
+        VStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(TehefTheme.card)
+                    .overlay {
+                        Circle()
+                            .stroke(TehefTheme.border.opacity(0.7), lineWidth: 1)
+                    }
+                    .shadow(color: .black.opacity(0.06), radius: 10, y: 4)
+                    .frame(width: 80, height: 80)
+
+                Circle()
+                    .fill(TehefTheme.primary.opacity(0.10))
+                    .frame(width: 54, height: 54)
+                    .overlay {
+                        Image(systemName: CategoryIconMapper.symbol(for: category.icon))
+                            .font(.system(size: 22, weight: .medium))
+                            .foregroundStyle(TehefTheme.primary)
+                    }
+            }
+
+            Text(category.name)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(TehefTheme.foreground)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .frame(width: 88)
         }
     }
 }

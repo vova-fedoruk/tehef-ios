@@ -266,7 +266,7 @@ struct TaskDetailView: View {
                         }
                     }
 
-                    if appModel.isAuthenticated, canLeaveReview(for: task) {
+                    if appModel.isAuthenticated, canLeaveReview(for: task), !currentUserHasLeftReview {
                         Divider()
                         Picker("Rating", selection: $reviewRating) {
                             ForEach(1...5, id: \.self) { value in
@@ -295,6 +295,10 @@ struct TaskDetailView: View {
                         }
                         .buttonStyle(GlassSecondaryButtonStyle())
                         .disabled(isSubmittingReview)
+                    } else if appModel.isAuthenticated, canLeaveReview(for: task), currentUserHasLeftReview {
+                        Text("You've already reviewed this task.")
+                            .font(.footnote)
+                            .foregroundStyle(TehefTheme.mutedForeground)
                     }
                 }
             }
@@ -367,6 +371,11 @@ struct TaskDetailView: View {
 
     private func canLeaveReview(for task: TaskItem) -> Bool {
         isTaskOwner(task) || isAssignedProvider(task)
+    }
+
+    private var currentUserHasLeftReview: Bool {
+        guard let uid = appModel.sessionStore.user?.id else { return false }
+        return reviews.contains { $0.reviewerId == uid }
     }
 
     private func startChat(for task: TaskItem) async {
