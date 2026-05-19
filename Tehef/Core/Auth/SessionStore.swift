@@ -85,11 +85,11 @@ final class SessionStore {
         }
     }
 
-    func login(email: String, password: String) async throws {
+    func login(email: String, password: String, turnstileToken: String? = nil) async throws {
         let response: AuthResponse = try await send(
             path: "api/auth/login",
             method: .post,
-            body: LoginRequest(email: email, password: password),
+            body: LoginRequest(email: email, password: password, turnstileToken: turnstileToken),
             authorized: false
         )
 
@@ -170,12 +170,7 @@ final class SessionStore {
         }
 
         guard (200...299).contains(httpResponse.statusCode) else {
-            if let payload = try? decoder.decode(APIErrorResponse.self, from: data),
-               let message = payload.message,
-               !message.isEmpty {
-                throw APIError.server(message: message)
-            }
-            throw APIError.server(message: "Request failed with status \(httpResponse.statusCode).")
+            throw try Self.decodeHTTPError(from: data, statusCode: httpResponse.statusCode, decoder: decoder)
         }
 
         do {
@@ -183,6 +178,20 @@ final class SessionStore {
         } catch {
             throw APIError.decoding(error)
         }
+    }
+}
+
+extension SessionStore {
+    static func decodeHTTPError(from data: Data, statusCode: Int, decoder: JSONDecoder) throws -> APIError {
+        if let payload = try? decoder.decode(APIErrorResponse.self, from: data) {
+            if payload.code == TurnstileEnvironment.failedCode {
+                return .turnstileFailed
+            }
+            if let message = payload.message, !message.isEmpty {
+                return .server(message: message)
+            }
+        }
+        return .server(message: "Request failed with status \(statusCode).")
     }
 }
 

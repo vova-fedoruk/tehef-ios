@@ -12,8 +12,11 @@ Native SwiftUI client for [tehef.io](https://tehef.io). The app targets iOS 26 a
 
 1. Copy `Config/Secrets.xcconfig.example` to `Config/Secrets.xcconfig`.
 2. Set `API_BASE_URL` to your backend origin, for example `https://tehef.io` or `http://127.0.0.1:3000`.
+3. Set `TURNSTILE_SITE_KEY` to the same Cloudflare **site key** as `NEXT_PUBLIC_TURNSTILE_SITE_KEY` on the server (not the secret). Leave empty to skip the widget locally.
 
 `Config/Secrets.xcconfig` is gitignored so local hosts and staging URLs stay off GitHub.
+
+Turnstile loads in a WebView with your API origin as the page base URL, so the hostname in the Cloudflare dashboard should include your API host (e.g. `tehef.io`). Google sign-in does not use Turnstile.
 
 ## Open and run
 

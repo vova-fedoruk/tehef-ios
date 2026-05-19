@@ -16,6 +16,7 @@ enum APIError: LocalizedError {
     case invalidResponse
     case unauthorized
     case server(message: String)
+    case turnstileFailed
     case decoding(Error)
 
     var errorDescription: String? {
@@ -28,6 +29,8 @@ enum APIError: LocalizedError {
             return "Your session expired. Sign in again."
         case .server(let message):
             return message
+        case .turnstileFailed:
+            return "Security verification failed. Please try again."
         case .decoding(let error):
             return "Could not read server data: \(error.localizedDescription)"
         }
@@ -36,6 +39,7 @@ enum APIError: LocalizedError {
 
 struct APIErrorResponse: Decodable {
     let message: String?
+    let code: String?
 }
 
 enum HTTPMethod: String {
@@ -242,10 +246,13 @@ final class APIClient {
     }
 
     private func decodeServerError(from data: Data, statusCode: Int) throws -> APIError {
-        if let payload = try? decoder.decode(APIErrorResponse.self, from: data),
-           let message = payload.message,
-           !message.isEmpty {
-            return .server(message: message)
+        if let payload = try? decoder.decode(APIErrorResponse.self, from: data) {
+            if payload.code == TurnstileEnvironment.failedCode {
+                return .turnstileFailed
+            }
+            if let message = payload.message, !message.isEmpty {
+                return .server(message: message)
+            }
         }
         return .server(message: "Request failed with status \(statusCode).")
     }

@@ -62,6 +62,13 @@ struct LoginView: View {
     @State private var isGoogleSubmitting = false
     @State private var errorMessage: String?
     @State private var googleCoordinator = GoogleOAuthCoordinator()
+    @State private var turnstileToken: String?
+    @State private var turnstileResetID = UUID()
+
+    private var turnstileEnabled: Bool { TurnstileField.isEnabled }
+    private var canSubmit: Bool {
+        !email.isEmpty && !password.isEmpty && (!turnstileEnabled || turnstileToken != nil)
+    }
 
     var body: some View {
         ScrollView {
@@ -88,6 +95,8 @@ struct LoginView: View {
                         .textContentType(.password)
                         .tehefField()
 
+                    TurnstileField(token: $turnstileToken, resetID: $turnstileResetID)
+
                     if let errorMessage {
                         Text(errorMessage)
                             .font(.footnote)
@@ -99,7 +108,7 @@ struct LoginView: View {
                         Task { await submit() }
                     }
                     .buttonStyle(GlassPrimaryButtonStyle())
-                    .disabled(isSubmitting || email.isEmpty || password.isEmpty)
+                    .disabled(isSubmitting || !canSubmit)
 
                     Button("Forgot password?") {
                         switchToForgotPassword()
@@ -124,14 +133,24 @@ struct LoginView: View {
     }
 
     private func submit() async {
+        if turnstileEnabled && turnstileToken == nil {
+            errorMessage = "Complete the security check before continuing."
+            return
+        }
+
         isSubmitting = true
         errorMessage = nil
         defer { isSubmitting = false }
 
         do {
-            try await appModel.sessionStore.login(email: email, password: password)
+            try await appModel.sessionStore.login(
+                email: email,
+                password: password,
+                turnstileToken: turnstileToken
+            )
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AuthFormErrors.message(for: error)
+            TurnstileField.reset(token: &turnstileToken, resetID: &turnstileResetID)
         }
     }
 
@@ -165,6 +184,10 @@ struct SignUpView: View {
     @State private var isGoogleSubmitting = false
     @State private var errorMessage: String?
     @State private var googleCoordinator = GoogleOAuthCoordinator()
+    @State private var turnstileToken: String?
+    @State private var turnstileResetID = UUID()
+
+    private var turnstileEnabled: Bool { TurnstileField.isEnabled }
 
     var body: some View {
         ScrollView {
@@ -209,6 +232,8 @@ struct SignUpView: View {
                     }
                     .pickerStyle(.segmented)
 
+                    TurnstileField(token: $turnstileToken, resetID: $turnstileResetID)
+
                     if let errorMessage {
                         Text(errorMessage)
                             .font(.footnote)
@@ -220,7 +245,7 @@ struct SignUpView: View {
                         Task { await submit() }
                     }
                     .buttonStyle(GlassPrimaryButtonStyle())
-                    .disabled(isSubmitting || !canSubmit)
+                    .disabled(isSubmitting || !canSubmitWithTurnstile)
                 }
                 .glassCard(cornerRadius: 24)
 
@@ -243,7 +268,16 @@ struct SignUpView: View {
         !firstName.isEmpty && !lastName.isEmpty && !email.isEmpty && !password.isEmpty
     }
 
+    private var canSubmitWithTurnstile: Bool {
+        canSubmit && (!turnstileEnabled || turnstileToken != nil)
+    }
+
     private func submit() async {
+        if turnstileEnabled && turnstileToken == nil {
+            errorMessage = "Complete the security check before continuing."
+            return
+        }
+
         isSubmitting = true
         errorMessage = nil
         defer { isSubmitting = false }
@@ -254,13 +288,15 @@ struct SignUpView: View {
             firstName: firstName,
             lastName: lastName,
             role: role,
-            phone: phone.isEmpty ? nil : phone
+            phone: phone.isEmpty ? nil : phone,
+            turnstileToken: turnstileToken
         )
 
         do {
             try await appModel.sessionStore.signUp(request: request)
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AuthFormErrors.message(for: error)
+            TurnstileField.reset(token: &turnstileToken, resetID: &turnstileResetID)
         }
     }
 
@@ -287,6 +323,13 @@ struct ForgotPasswordView: View {
     @State private var isSubmitting = false
     @State private var errorMessage: String?
     @State private var successMessage: String?
+    @State private var turnstileToken: String?
+    @State private var turnstileResetID = UUID()
+
+    private var turnstileEnabled: Bool { TurnstileField.isEnabled }
+    private var canSubmit: Bool {
+        !email.isEmpty && (!turnstileEnabled || turnstileToken != nil)
+    }
 
     var body: some View {
         ScrollView {
@@ -323,11 +366,13 @@ struct ForgotPasswordView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
 
+                    TurnstileField(token: $turnstileToken, resetID: $turnstileResetID)
+
                     Button(isSubmitting ? "Sending..." : "Send reset link") {
                         Task { await submit() }
                     }
                     .buttonStyle(GlassPrimaryButtonStyle())
-                    .disabled(isSubmitting || email.isEmpty)
+                    .disabled(isSubmitting || !canSubmit)
                 }
                 .glassCard(cornerRadius: 24)
 
@@ -341,6 +386,11 @@ struct ForgotPasswordView: View {
     }
 
     private func submit() async {
+        if turnstileEnabled && turnstileToken == nil {
+            errorMessage = "Complete the security check before continuing."
+            return
+        }
+
         isSubmitting = true
         errorMessage = nil
         successMessage = nil
@@ -351,13 +401,23 @@ struct ForgotPasswordView: View {
                 APIRequest(
                     path: "api/auth/request-password-reset",
                     method: .post,
-                    body: ForgotPasswordRequest(email: email)
+                    body: ForgotPasswordRequest(email: email, turnstileToken: turnstileToken)
                 ),
                 responseType: PasswordResetResponse.self
             )
             successMessage = response.message ?? "If an account exists, password reset instructions have been sent."
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = AuthFormErrors.message(for: error)
+            TurnstileField.reset(token: &turnstileToken, resetID: &turnstileResetID)
         }
+    }
+}
+
+private enum AuthFormErrors {
+    static func message(for error: Error) -> String {
+        if let apiError = error as? APIError {
+            return apiError.localizedDescription
+        }
+        return error.localizedDescription
     }
 }

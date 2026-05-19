@@ -334,6 +334,7 @@ struct AuthenticatedHomeResponse: Codable {
 struct LoginRequest: Encodable {
     let email: String
     let password: String
+    let turnstileToken: String?
 }
 
 struct SignUpRequest: Encodable {
@@ -343,6 +344,7 @@ struct SignUpRequest: Encodable {
     let lastName: String
     let role: String
     let phone: String?
+    let turnstileToken: String?
 }
 
 struct OAuthExchangeRequest: Encodable {
@@ -443,6 +445,7 @@ struct ProfileUpdateRequest: Encodable {
 
 struct ForgotPasswordRequest: Encodable {
     let email: String
+    let turnstileToken: String?
 }
 
 struct PasswordResetResponse: Decodable {
